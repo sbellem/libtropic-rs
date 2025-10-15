@@ -1,15 +1,11 @@
 {
   description = "Example Rust development environment for Zero to Nix";
 
-  # Flake inputs
   inputs = {
-    # Latest stable Nixpkgs
     nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0";
-    # A helper library for Rust + Nix
     rust-overlay.url = "https://flakehub.com/f/oxalica/rust-overlay/*";
   };
 
-  # Flake outputs
   outputs =
     {
       self,
@@ -17,12 +13,8 @@
       rust-overlay,
     }:
     let
-      # Overlays enable you to customize the Nixpkgs attribute set
       overlays = [
-        # Makes a `rust-bin` attribute available in Nixpkgs
         (import rust-overlay)
-        # Provides a `rustToolchain` attribute for Nixpkgs that we can use to
-        # create a Rust environment
         (final: prev: {
           rustToolchain = prev.rust-bin.stable.latest.default;
         })
@@ -36,7 +28,6 @@
         "aarch64-darwin" # 64-bit ARM macOS
       ];
 
-      # Helper to provide system-specific attributes
       forAllSystems =
         f:
         nixpkgs.lib.genAttrs allSystems (
@@ -47,19 +38,28 @@
         );
     in
     {
-      # Development environment output
       devShells = forAllSystems (
         { pkgs }:
         {
           default = pkgs.mkShell {
-            # The Nix packages provided in the environment
             packages =
               (with pkgs; [
                 # The package provided by our custom overlay. Includes cargo, Clippy, cargo-fmt,
                 # rustdoc, rustfmt, and other tools.
                 rustToolchain
+                pkg-config
+                systemd.dev
+                #udev
               ])
               ++ pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs; [ libiconv ]);
+
+            shellHook = ''
+              echo "rust dev env for tropic01"
+            '';
+            #export PKG_CONFIG_PATH=${pkgs.libudev}/lib/pkgconfig${pkgs.stdenv.isLinux ? ":$PKG_CONFIG_PATH" : ""}
+            #export CARGO_TARGET=$(rustc --print target-spec-json | ${pkgs.jq}/bin/jq -r .llvm_target)
+            #echo "Default Cargo target set to: $CARGO_TARGET"
+            #echo "Override with: export CARGO_BUILD_TARGET=<target>"
           };
         }
       );
