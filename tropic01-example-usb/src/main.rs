@@ -217,6 +217,9 @@ fn main() -> Result<(), SerialTransportError> {
 
     chip_info.print_details();
 
+    let res = tropic01.get_info_cert()?;
+    println!("Cert: {res:x?}");
+
     println!("Example completed successfully!");
     Ok(())
 }
