@@ -299,15 +299,6 @@ fn main() -> Result<(), SerialTransportError> {
     println!("  X-Coordinate: 0x{:04x}", x_coord);
     println!("  Y-Coordinate: 0x{:04x}", y_coord);
 
-    // Part number (bytes 68-79, ASCII, 12 bytes)
-    //let part_number = String::from_utf8(chip_id[68..80].to_vec())
-    //    .unwrap_or_else(|_| "Unknown".to_string());
-    //let part_number_hex: String = chip_id[68..84]
-    //    .iter()
-    //    .map(|b| format!("{:02x}", b))
-    //    .collect::<Vec<String>>()
-    //    .join("");
-    //println!("P/N (long): 0x{} ({})", part_number_hex, part_number);
     let part_num_data = &chip_id[68..84]; // 16 bytes, including length
     let pn_len = part_num_data[0] as usize;
 
