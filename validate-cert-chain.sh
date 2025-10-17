@@ -21,11 +21,10 @@ L2=$(openssl x509 -in t01_xxxx_ca_cert.der -inform DER -text | grep URI | cut -d
 L1=$(openssl x509 -in t01_ca_cert.der -inform DER -text | grep URI | cut -d ':' -f 2-)
 
 echo "$L3, $L2, $L1"
-
 # Download CRLs
-if [ -n "${L3}" ]; then curl -O "${L3}"; fi        # Downloads t01-Tv1.crl
-if [ -n "${L2}" ]; then curl -O "${L2}"; fi        # Downloads t01v1.crl
-if [ -n "${L1}" ]; then curl -O "${L1}"; fi        # Downloads tsrv1.crl
+if [ ! -f "t01-Tv1.crl" ]; then curl -O "${L3}"; fi      # Downloads t01-Tv1.crl
+if [ ! -f "t01v1.crl" ]; then curl -O "${L2}"; fi        # Downloads t01v1.crl
+if [ ! -f "tsrv1.crl" ]; then curl -O "${L1}"; fi        # Downloads tsrv1.crl
 
 # Validate (chip) device certificate
 cat "${xxxx_ca_cert_sn_30001}" t01-Tv1.crl \
