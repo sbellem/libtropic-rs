@@ -30,6 +30,12 @@ tokio = { version = "1.45.1", features = ["full"] }
 embedded-hal = "1.0.0"
 serialport = "4.5.0"
 log = "0.4"
+hex = "0.4.3"
+# XXX
+x509-parser = "0.18.0"
+reqwest = "0.12.24"
+openssl = "0.10.74"
+pem = "3.0.6"
 
 [lints]
 workspace = true

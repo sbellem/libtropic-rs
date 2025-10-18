@@ -37,6 +37,11 @@ x25519-dalek = { version = "2", default-features = false, features = [
 zerocopy = { version = "0.8", default-features = false, features = ["derive"] }
 zeroize = { version = "1", default-features = false, features = ["derive"] }
 
+# XXX
+x509-parser = "0.18.0"
+reqwest = "0.12.24"
+openssl = "0.10.74"
+
 [features]
 default = ["keys", "x25519-dalek"]
 keys = []

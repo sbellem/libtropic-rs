@@ -49,6 +49,7 @@
                 rustToolchain
                 pkg-config
                 systemd.dev
+                openssl
                 #udev
               ])
               ++ pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs; [ libiconv ]);
