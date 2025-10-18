@@ -24,6 +24,9 @@ opt-level = 3
 [profile.dev.package.tropic01-example-rpi]
 opt-level = 3
 
+[profile.dev.package.tropic01-example-usb]
+opt-level = 3
+
 [workspace.lints.rust]
 # denied lints
 rust-2018-compatibility = "deny"

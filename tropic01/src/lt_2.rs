@@ -1,3 +1,7 @@
+extern crate alloc;
+use alloc::vec::Vec;
+use alloc::vec;
+
 use core::iter::repeat_n;
 
 use aes_gcm::aead::arrayvec::ArrayVec;
@@ -39,6 +43,13 @@ const L2_GET_INFO_REQ_CERT_SIZE: usize = 512;
 /// Protocol Name
 /// See section 7.4.1 of the datasheet, section `Protocol Name`.
 const PROTOCOL_NAME: &[u8; 32] = b"Noise_KK1_25519_AESGCM_SHA256\x00\x00\x00";
+
+/// XXX
+const CERT_STORE_VERSION: u8 = 1;
+const NUM_CERTIFICATES: usize = 4;
+const CERTS_BUF_LEN: usize = 700;
+const CHUNK_SIZE: usize = 128;
+
 
 #[derive(Debug)]
 #[repr(u8)]
@@ -155,6 +166,26 @@ pub enum PublicKeyError {
     PublicKeyNotFound,
 }
 
+
+/// XXX
+/// The certificate store ...
+#[derive(Debug)]
+pub struct CertStore {
+    pub certs: [Vec<u8>; NUM_CERTIFICATES],
+    pub cert_len: [usize; NUM_CERTIFICATES],
+}
+
+/// XXX
+impl CertStore {
+    pub fn cert_der(&self, idx: usize) -> Option<&[u8]> {
+        if idx < NUM_CERTIFICATES && self.cert_len[idx] > 0 {
+            Some(&self.certs[idx][..self.cert_len[idx]])
+        } else {
+            None
+        }
+    }
+}
+
 /// The x509 certificate of the chip containing the public key.
 #[derive(Debug)]
 pub struct X509Certificate<'a> {
@@ -180,6 +211,11 @@ impl<'a> X509Certificate<'a> {
         self.data[start..start + 32]
             .try_into()
             .map_err(|_| PublicKeyError::PublicKeyNotFound)
+    }
+
+    /// Public accessor for the DER bytes
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.data[..]
     }
 }
 
@@ -217,6 +253,104 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
         Error<<SPI as SpiErrorType>::Error, <CS as GpioErrorType>::Error>,
     > {
         get_info_req(req, block, &mut self.l2_buf, &mut self.spi, &mut self.cs)
+    }
+
+
+    /// Reads the full certificate store from the chip, parses header, and fills buffers for each certificate.
+    pub fn get_info_cert_store(
+        &mut self,
+    ) -> Result<CertStore, Error<<SPI as SpiErrorType>::Error, <CS as GpioErrorType>::Error>> {
+        let mut store = CertStore {
+            certs: [
+                vec![0u8; CERTS_BUF_LEN],
+                vec![0u8; CERTS_BUF_LEN],
+                vec![0u8; CERTS_BUF_LEN],
+                vec![0u8; CERTS_BUF_LEN],
+            ],
+            cert_len: [0; NUM_CERTIFICATES],
+        };
+        let mut current_cert = 0;
+        let mut cert_head_offsets = [0usize; NUM_CERTIFICATES];
+        let mut block_index = 0;
+
+        // First chunk: parse header
+        let res = self.get_info_req(InfoReq::X509Certificate, block_index)?;
+        let first_chunk = res.resp_data();
+        block_index += 1;
+
+        // Parse header
+        if first_chunk.len() < 2 + NUM_CERTIFICATES * 2 {
+            return Err(Error::InvalidL2Response);
+        }
+        let mut idx = 0;
+        let version = first_chunk[idx]; idx += 1;
+        let cert_count = first_chunk[idx]; idx += 1;
+        if version != CERT_STORE_VERSION || cert_count as usize != NUM_CERTIFICATES {
+            return Err(Error::InvalidL2Response);
+        }
+        for i in 0..NUM_CERTIFICATES {
+            let hi = first_chunk[idx] as usize; idx += 1;
+            let lo = first_chunk[idx] as usize; idx += 1;
+            store.cert_len[i] = (hi << 8) | lo;
+        }
+
+        // Copy from remainder of first chunk
+        let mut head = idx;
+        let mut available = first_chunk.len() - idx;
+        {
+            let till_now = cert_head_offsets[current_cert];
+            let till_end = store.cert_len[current_cert].saturating_sub(till_now);
+            let to_copy = till_end.min(available);
+            store.certs[current_cert][till_now..till_now+to_copy]
+                .copy_from_slice(&first_chunk[head..head+to_copy]);
+            cert_head_offsets[current_cert] += to_copy;
+            head += to_copy;
+            available -= to_copy;
+
+            // Handle overflow into next certs in the same chunk
+            while cert_head_offsets[current_cert] == store.cert_len[current_cert] && available > 0 && current_cert < NUM_CERTIFICATES-1 {
+                current_cert += 1;
+                let till_now = cert_head_offsets[current_cert];
+                let till_end = store.cert_len[current_cert].saturating_sub(till_now);
+                let to_copy = till_end.min(available);
+                store.certs[current_cert][till_now..till_now+to_copy]
+                    .copy_from_slice(&first_chunk[head..head+to_copy]);
+                cert_head_offsets[current_cert] += to_copy;
+                head += to_copy;
+                available -= to_copy;
+            }
+        }
+
+        // Continue reading chunks until all certs are filled
+        while current_cert < NUM_CERTIFICATES && cert_head_offsets[current_cert] < store.cert_len[current_cert] {
+            let res = self.get_info_req(InfoReq::X509Certificate, block_index)?;
+            let chunk = res.resp_data();
+            block_index += 1;
+
+            let mut head = 0;
+            let mut available = chunk.len();
+            let till_now = cert_head_offsets[current_cert];
+            let till_end = store.cert_len[current_cert].saturating_sub(till_now);
+            let to_copy = till_end.min(available);
+            store.certs[current_cert][till_now..till_now+to_copy]
+                .copy_from_slice(&chunk[head..head+to_copy]);
+            cert_head_offsets[current_cert] += to_copy;
+            head += to_copy;
+            available -= to_copy;
+
+            while cert_head_offsets[current_cert] == store.cert_len[current_cert] && available > 0 && current_cert < NUM_CERTIFICATES-1 {
+                current_cert += 1;
+                let till_now = cert_head_offsets[current_cert];
+                let till_end = store.cert_len[current_cert].saturating_sub(till_now);
+                let to_copy = till_end.min(available);
+                store.certs[current_cert][till_now..till_now+to_copy]
+                    .copy_from_slice(&chunk[head..head+to_copy]);
+                cert_head_offsets[current_cert] += to_copy;
+                head += to_copy;
+                available -= to_copy;
+            }
+        }
+        Ok(store)
     }
 
     pub fn get_info_cert(

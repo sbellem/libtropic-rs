@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# TODO: Rename according to https://pki.tropicsquare.com/
+#
 xxxx_ca_cert_sn_30001="tropic01_xxxx_ca_certificate_sn_30001.pem"
 ca_cert_sn_3001="tropic01_ca_certificate_sn_3001.pem"
 root_ca_cert_sn_301="tropicsquare_root_ca_certificate_sn_301.pem"
