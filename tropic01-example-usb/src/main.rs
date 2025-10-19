@@ -11,6 +11,8 @@ use tropic01::{Error as TropicError, Tropic01};
 use std::io;
 
 use tropic01_example_usb::ChipId;
+use tropic01_example_usb::cert::Cert;
+
 
 // Helper function for hex formatting
 fn bytes_to_hex(bytes: &[u8]) -> String {
@@ -266,6 +268,7 @@ fn main() -> Result<(), SerialTransportError> {
     use x509_parser::parse_x509_der;
     use std::fs::File;
     use std::io::Write;
+    use
 
     const CERT_NAMES: [&str; 4] = [
         "t01_ese_cert",

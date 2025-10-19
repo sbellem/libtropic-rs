@@ -24,10 +24,10 @@ impl Cert {
 
     /// Returns PEM-encoded certificate as a String using the pem crate.
     pub fn to_pem(&self) -> String {
-        let pem = Pem {
-            tag: "CERTIFICATE".to_string(),
-            contents: self.der[..self.len].to_vec(),
-        };
+        let pem = Pem::new(
+            "CERTIFICATE",
+            self.der[..self.len].to_vec()
+        );
         pem::encode(&pem)
     }
 
@@ -38,7 +38,7 @@ impl Cert {
 
     /// Returns the serial number as a lowercase hex string.
     pub fn serial_hex(&self) -> String {
-        self.parsed.serial().to_str_radix(16)
+        self.parsed.serial.to_str_radix(16)
     }
 
     /// Returns the subject as a String.
