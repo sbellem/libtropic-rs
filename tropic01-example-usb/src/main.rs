@@ -243,32 +243,27 @@ fn main() -> Result<(), SerialTransportError> {
 
     chip_info.print_details();
 
+    /// Get the certificate
     //let res = tropic01.get_info_cert()?;
     //println!("Cert: {res:x?}");
-
-    // Get the certificate
-    let res = tropic01.get_info_cert()?;
-    println!("Cert: {res:x?}");
-    println!("Cert data: {:?}", res.as_bytes());
-    
-    // Print the raw certificate bytes as hex
-    println!("Certificate (hex): {}", hex::encode(res.as_bytes()));
-    
-    println!("Cert public key: {:?}", res.public_key());
+    //println!("Cert data: {:?}", res.as_bytes());
+    //
+    //// Print the raw certificate bytes as hex
+    //println!("Certificate (hex): {}", hex::encode(res.as_bytes()));
+    //println!("Cert public key: {:?}", res.public_key());
 
     let res = tropic01.get_info_cert_store()?;
-    println!("Cert store: {:?}", res);
-    println!("Cert store sizes: {:?}", res.cert_len);
-    println!("Cert store cert 0: {:?}", res.certs[0]);
-    println!("Cert store cert 1: {:?}", res.certs[1]);
-    println!("Cert store cert 2: {:?}", res.certs[2]);
-    println!("Cert store cert 3: {:?}", res.certs[3]);
+    //println!("Cert store: {:?}", res);
+    println!("Cert store sizes: {:?}\n", res.cert_len);
+    //println!("Cert store cert 0: {:?}", res.certs[0]);
+    //println!("Cert store cert 1: {:?}", res.certs[1]);
+    //println!("Cert store cert 2: {:?}", res.certs[2]);
+    //println!("Cert store cert 3: {:?}", res.certs[3]);
 
     /// XXX
     use x509_parser::parse_x509_der;
     use std::fs::File;
     use std::io::Write;
-    use
 
     const CERT_NAMES: [&str; 4] = [
         "t01_ese_cert",
@@ -281,16 +276,23 @@ fn main() -> Result<(), SerialTransportError> {
     for (i, cert_buf) in store.certs.iter().enumerate() {
         let der = &cert_buf[..store.cert_len[i]];
         let len = der.len();
-        println!("Certificate {} DER ({} bytes):", i, len);
+        println!("Certificate {}, DER ({} bytes)", i, len);
         
-        let (_, cert) = parse_x509_der(&der[..len]).expect("Failed to parse DER");
-        //let serial = cert.serial; // returns &BigUint
-        //let serial_hex = serial.to_str_radix(16);
-        //let filename = format!("cert_sn_{}.der", cert.serial);
-        let filename = format!("{}.der", CERT_NAMES[i]);
-        let mut file = File::create(&filename)?;
-        file.write_all(&der[..len])?;
-        println!("Wrote {} bytes to {}", len, filename);
+        //let (_, cert) = parse_x509_der(&der[..len]).expect("Failed to parse DER");
+        let cert = Cert::from_der(&der, len).expect("DER parse failed");
+
+        //println!("Serial: {}", cert.serial_hex());
+        println!("Serial: {}", cert.parsed.serial);
+        println!("Subject: {}", cert.subject());
+        println!("PEM:\n{}", cert.to_pem());
+        println!("Hex:\n{}", cert.to_hex());
+
+        std::fs::write(format!("_{}.pem", CERT_NAMES[i]), cert.to_pem())?;
+        std::fs::write(format!("{}.der", CERT_NAMES[i]), &cert.der)?;
+        //let filename = format!("{}.der", CERT_NAMES[i]);
+        //let mut file = File::create(&filename)?;
+        //file.write_all(&der[..len])?;
+        //println!("Wrote {} bytes to {}", len, filename);
 
         println!();
     }
