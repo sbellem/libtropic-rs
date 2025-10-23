@@ -15,6 +15,7 @@ tropic01 = { path = "../tropic01", default-features = false, features = [
   "keys",
   "x25519-dalek",
 ] }
+utils = { path = "../utils" }
 
 anyhow = { version = "1.0.98", default-features = false }
 ed25519-dalek = { version = "2.2.0", default-features = false }
@@ -31,8 +32,7 @@ embedded-hal = "1.0.0"
 serialport = "4.5.0"
 log = "0.4"
 hex = "0.4.3"
-# XXX
-x509-parser = "0.18.0"
+x509-parser = { git = "https://github.com/sbellem/x509-parser.git", branch = "dev", features = ["verify-aws", "validate"] }
 reqwest = "0.12.24"
 openssl = "0.10.74"
 pem = "3.0.6"

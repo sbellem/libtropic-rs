@@ -1,7 +1,7 @@
 [workspace]
 
 resolver = "3"
-members = ["tropic01", "tropic01-example-rpi", "tropic01-example-usb"]
+members = ["tropic01", "tropic01-example-rpi", "tropic01-example-usb", "utils"]
 
 [workspace.package]
 authors = ["Filancore GmbH <info@filancore.com>"]
