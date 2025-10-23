@@ -1,64 +1,33 @@
-//! USB HAL implementation for tropic01
 #![allow(deprecated)] // Suppress aes-gcm warnings in tropic01
 
+use std::env;
+use std::fmt;
 use std::io;
 use std::thread;
+use std::convert::TryInto;
+use std::error::Error;
 use std::time::Duration;
+use std::array::TryFromSliceError;
 
-use embedded_hal::spi::{ErrorType, SpiDevice, Error as SpiError, ErrorKind, Operation};
+use serialport;
+
+use ed25519_dalek::Signature;
+use ed25519_dalek::VerifyingKey;
+
+use embedded_hal::spi::{ErrorType, SpiDevice, Error as SpiError, ErrorKind};
+//use embedded_hal::spi::{Error as SpiError, ErrorKind};
+
 use serialport::{DataBits, FlowControl, Parity, StopBits};
-use tropic01::Tropic01;
-use dummy_pin::DummyPin;
+//use sha2::Digest as _;
 
-// Helper function for hex formatting
-fn bytes_to_hex(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{:02x}", b)).collect::<Vec<_>>().join("")
-}
+use tropic01::{Error as TropicError, Tropic01};
 
-#[derive(Debug)]
-pub enum SerialTransportError {
-    Io(io::Error),
-    InvalidResponse,
-    DataTooLong,
-    NonUtf8Hex,
-    InvalidHexDigit,
-    InvalidBufferLength,
-    Tropic(Box<dyn std::error::Error>),
-}
 
-impl SpiError for SerialTransportError {
-    fn kind(&self) -> ErrorKind {
-        match self {
-            Self::Io(_) => ErrorKind::Other,
-            Self::InvalidResponse => ErrorKind::Other,
-            Self::DataTooLong => ErrorKind::Other,
-            Self::NonUtf8Hex => ErrorKind::Other,
-            Self::InvalidHexDigit => ErrorKind::Other,
-            Self::InvalidBufferLength => ErrorKind::Other,
-            Self::Tropic(_) => ErrorKind::Other,
-        }
-    }
-}
-
-impl From<io::Error> for SerialTransportError {
-    fn from(err: io::Error) -> Self {
-        Self::Io(err)
-    }
-}
-
-impl From<serialport::Error> for SerialTransportError {
-    fn from(err: serialport::Error) -> Self {
-        Self::Io(err.into())
-    }
-}
-
-/// Serial transport for connecting to Tropic hardware over USB
 pub struct SerialTransport {
     port: Box<dyn serialport::SerialPort>,
 }
 
 impl SerialTransport {
-    /// Create a new SerialTransport instance
     pub fn new(port_name: &str, baud_rate: u32) -> Result<Self, SerialTransportError> {
         let mut port = serialport::new(port_name.to_string(), baud_rate)
             .data_bits(DataBits::Eight)
@@ -132,29 +101,29 @@ impl ErrorType for SerialTransport {
 }
 
 impl SpiDevice for SerialTransport {
-    fn transaction(&mut self, operations: &mut [Operation<'_, u8>]) -> Result<(), Self::Error> {
+    fn transaction(&mut self, operations: &mut [embedded_hal::spi::Operation<'_, u8>]) -> Result<(), Self::Error> {
         self.cs_high()?;
         for op in operations {
             match op {
-                Operation::Write(data) => {
+                embedded_hal::spi::Operation::Write(data) => {
                     let mut buf = data.to_vec();
                     self.transfer(&mut buf)?;
                 }
-                Operation::Transfer(read, write) => {
+                embedded_hal::spi::Operation::Transfer(read, write) => {
                     if read.len() != write.len() {
                         return Err(SerialTransportError::InvalidBufferLength);
                     }
                     read.copy_from_slice(write);
                     self.transfer(read)?;
                 }
-                Operation::TransferInPlace(data) => {
+                embedded_hal::spi::Operation::TransferInPlace(data) => {
                     self.transfer(data)?;
                 }
-                Operation::Read(data) => {
+                embedded_hal::spi::Operation::Read(data) => {
                     data.fill(0);
                     self.transfer(data)?;
                 }
-                Operation::DelayNs(_ns) => {
+                embedded_hal::spi::Operation::DelayNs(_ns) => {
                     thread::sleep(Duration::from_nanos(1));
                 }
             }
@@ -164,67 +133,104 @@ impl SpiDevice for SerialTransport {
     }
 }
 
-/// Create a Tropic01 device using the USB serial transport
-/// 
-/// # Arguments
-/// * `port_name` - Serial port name (e.g., "/dev/ttyACM0")
-/// * `baud_rate` - Serial baud rate (typically 115200)
-/// 
-/// # Returns
-/// A Tropic01 instance configured for USB communication
-pub fn create_usb_device(
-    port_name: &str,
-    baud_rate: u32,
-) -> Result<Tropic01<SerialTransport, DummyPin>, SerialTransportError> {
-    let transport = SerialTransport::new(port_name, baud_rate)?;
-    Ok(Tropic01::new(transport))
+/// Error module
+
+#[derive(Debug)]
+pub enum SerialTransportError {
+    Io(io::Error),
+    InvalidResponse,
+    DataTooLong,
+    NonUtf8Hex,
+    InvalidHexDigit,
+    InvalidBufferLength,
+    // Box is needed to break the recursion
+    Tropic(TropicError<Box<SerialTransportError>, std::convert::Infallible>),
 }
 
-/// Create a Tropic01 device using default USB settings
-/// 
-/// Uses "/dev/ttyACM0" at 115200 baud
-/// 
-/// # Returns
-/// A Tropic01 instance configured for USB communication
-pub fn create_default_usb_device() -> Result<Tropic01<SerialTransport, DummyPin>, SerialTransportError> {
-    create_usb_device("/dev/ttyACM0", 115200)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    /// Test reading chip ID from actual hardware
-    /// 
-    /// This test requires physical hardware and should be ignored in automated testing.
-    /// Run it manually with: cargo test -p hal -- --ignored read_chip_id
-    #[test]
-    #[ignore = "Requires physical hardware connection"]
-    fn read_chip_id() {
-        // Try to initialize a device
-        let port_name = std::env::var("TROPIC_PORT").unwrap_or_else(|_| "/dev/ttyACM0".to_string());
-        let baud_rate = 115200;
-        
-        println!("Testing connection to device on {} @ {} baud", port_name, baud_rate);
-        
-        // Create device directly
-        let mut device = create_usb_device(&port_name, baud_rate)
-            .expect("Should be able to create device");
-        
-        // Read the chip ID
-        let chip_id = device.get_info_chip_id()
-            .expect("Should be able to read chip ID");
-        
-        println!("Successfully read chip ID: {:?}", chip_id);
-        
-        // Basic validation - chip ID should not be empty
-        assert!(!chip_id.is_empty(), "Chip ID should not be empty");
+impl fmt::Display for SerialTransportError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Io(err) => write!(f, "USB/Serial I/O error: {}", err),
+            Self::InvalidResponse => write!(f, "Invalid response from device"),
+            Self::DataTooLong => write!(f, "Data too long for transport"),
+            Self::NonUtf8Hex => write!(f, "Non-UTF8 hex characters in response"),
+            Self::InvalidHexDigit => write!(f, "Invalid hex digit in response"),
+            Self::InvalidBufferLength => write!(f, "Invalid buffer length"),
+            Self::Tropic(err) => write!(f, "Tropic device error: {}", err),
+        }
     }
-    
-    /// Simple test that doesn't require hardware
-    #[test]
-    fn test_function_exists() {
-        // Just ensure the function is available - doesn't actually call it
-        assert!(true, "create_usb_device function exists");
+}
+
+impl Error for SerialTransportError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Io(err) => Some(err),
+            Self::Tropic(err) => Some(err),
+            _ => None,
+        }
+    }
+}
+
+impl SpiError for SerialTransportError {
+    fn kind(&self) -> ErrorKind {
+        match self {
+            Self::Io(_) => ErrorKind::Other,
+            Self::InvalidResponse => ErrorKind::Other,
+            Self::DataTooLong => ErrorKind::Other,
+            Self::NonUtf8Hex => ErrorKind::Other,
+            Self::InvalidHexDigit => ErrorKind::Other,
+            Self::InvalidBufferLength => ErrorKind::Other,
+            Self::Tropic(_) => ErrorKind::Other,
+        }
+    }
+}
+
+impl From<io::Error> for SerialTransportError {
+    fn from(err: io::Error) -> Self {
+        Self::Io(err)
+    }
+}
+
+impl From<serialport::Error> for SerialTransportError {
+    fn from(err: serialport::Error) -> Self {
+        Self::Io(err.into())
+    }
+}
+
+impl From<TryFromSliceError> for SerialTransportError {
+    fn from(_err: TryFromSliceError) -> Self {
+        Self::InvalidBufferLength
+    }
+}
+
+impl From<TropicError<SerialTransportError, std::convert::Infallible>> for SerialTransportError {
+    fn from(err: TropicError<SerialTransportError, std::convert::Infallible>) -> Self {
+        match err {
+            // Special case for BusError which has a SerialTransportError inside
+            TropicError::BusError(inner) => Self::Tropic(
+                TropicError::BusError(Box::new(inner))
+            ),
+            // For variants that don't contain SerialTransportError, we can map directly
+            TropicError::AlarmMode => Self::Tropic(TropicError::AlarmMode),
+            TropicError::ChipBusy => Self::Tropic(TropicError::ChipBusy),
+            TropicError::Decryption(e) => Self::Tropic(TropicError::Decryption(e)),
+            TropicError::Encryption(e) => Self::Tropic(TropicError::Encryption(e)),
+            TropicError::GPIOError(_) => Self::InvalidResponse, // Infallible
+            TropicError::HandshakeFailed => Self::Tropic(TropicError::HandshakeFailed),
+            TropicError::InvalidChipStatus(e) => Self::Tropic(TropicError::InvalidChipStatus(e)),
+            TropicError::InvalidCRC => Self::Tropic(TropicError::InvalidCRC),
+            TropicError::InvalidKey => Self::Tropic(TropicError::InvalidKey),
+            TropicError::InvalidL2Response => Self::Tropic(TropicError::InvalidL2Response),
+            TropicError::InvalidL3Cmd => Self::Tropic(TropicError::InvalidL3Cmd),
+            TropicError::InvalidPublicKey => Self::Tropic(TropicError::InvalidPublicKey),
+            TropicError::L2ResponseError(e) => Self::Tropic(TropicError::L2ResponseError(e)),
+            TropicError::L3CmdFailed => Self::Tropic(TropicError::L3CmdFailed),
+            TropicError::L3ResponseBufferOverflow => Self::Tropic(TropicError::L3ResponseBufferOverflow),
+            TropicError::NoSession => Self::Tropic(TropicError::NoSession),
+            TropicError::ParsingError(e) => Self::Tropic(TropicError::ParsingError(e)),
+            TropicError::RequestExceedsSize => Self::Tropic(TropicError::RequestExceedsSize),
+            TropicError::Unauthorized => Self::Tropic(TropicError::Unauthorized),
+            TropicError::UnexpectedResponseStatus => Self::Tropic(TropicError::UnexpectedResponseStatus),
+        }
     }
 }
