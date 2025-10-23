@@ -1,8 +1,7 @@
-use x509_parser::parse_x509_der;
-use x509_parser::certificate::X509Certificate;
-use pem::Pem;
 use hex;
+use pem::Pem;
 use std::fmt;
+use x509_parser::prelude::{FromDer, X509Certificate};
 
 /// Certificate struct with DER, PEM, hex, and parsed metadata.
 #[derive(Debug, Clone)]
@@ -18,7 +17,7 @@ impl Cert {
         let owned = der[..len].to_vec();
         // Lifetime hack: leak the owned data so X509Certificate can live 'static
         let leaked = Box::leak(owned.clone().into_boxed_slice());
-        let (_, parsed) = parse_x509_der(leaked).map_err(|_| "Failed to parse DER")?;
+        let (_, parsed) = X509Certificate::from_der(leaked).map_err(|_| "Failed to parse DER")?;
         Ok(Cert { der: owned, len, parsed })
     }
 

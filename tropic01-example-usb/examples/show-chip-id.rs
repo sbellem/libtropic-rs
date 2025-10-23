@@ -1,5 +1,7 @@
-use hal::SerialTransport;
+use std::env;
 use tropic01::Tropic01;
+use tropic01_example_usb::chipid::ChipId;
+use tropic01_example_usb::port::UsbDevice;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -16,14 +18,18 @@ async fn main() -> Result<(), anyhow::Error> {
 
     println!("Opening TS1302 dongle on {} @ {} baud", port_name, baud_rate);
 
-    let transport = SerialTransport::new(&port_name, baud_rate)?;
-    let mut tropic01 = Tropic01::new(transport);
-
-
-
-    let res = tropic01.get_info_chip_id()?;
-    println!("ChipId: {res:x?}");
+    let usb_device = UsbDevice::new(&port_name, baud_rate)?;
+    let mut tropic = Tropic01::new(usb_device);
+    let res = tropic.get_info_chip_id()?;
     let chip_id = res.to_vec();
+    let chip_info = ChipId::try_from(&chip_id[..])
+        .map_err(|e| {
+            println!("Failed to parse chip ID: {}", e);
+            anyhow::anyhow!("Chip ID parsing error: {}", e)
+
+        })?;
+
+    chip_info.print_details();
 
     Ok(())
 }
