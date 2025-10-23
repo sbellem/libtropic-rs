@@ -11,14 +11,17 @@ nix develop
 ```
 
 ## Quick start
+> [!NOTE]
+> Note the two optional arguments: `/dev/ttyACM0` and `115200`. These may differ
+> on your system. Modify accordingly if necessary.
+
+Run examples:
+
+### Show Chip Identification Information
 
 ```bash
-cargo run --package tropic01-example-usb -- /dev/ttyACM0 115200
+cargo run --example show-chip-id
 ```
-
-> [!NOTE]
-> Note the two arguments: `/dev/ttyACM0` and `115200`. These may differ
-> on your system. Modify accordingly if necessary.
 
 **Example output:**
 
@@ -50,20 +53,215 @@ Prov template tag: 0xd8966128
 Prov specification ver: 0x000c (v0.12)
 Prov specification tag: 0x7deda870
 Batch ID: 0x1905090d00
-Cert: X509Certificate { data: [1, 4, 1, d3, 2, 62, 2, 8f, 2, 5c, 30, 82, 1, cf, 30, 82, 1, 55, a0, 3, 2, 1, 2, 2, 10, 2, 0, 11, 1, 8, 5b, 19, 5, 9, d, 0, 0, 0, 0, 3, eb, 30, a, 6, 8, 2a, 86, 48, ce, 3d, 4, 3, 3, 30, 47, 31, b, 30, 9, 6, 3, 55, 4, 6, 13, 2, 43, 5a, 31, 1d, 30, 1b, 6, 3, 55, 4, a, c, 14, 54, 72, 6f, 70, 69, 63, 20, 53, 71, 75, 61, 72, 65, 20, 73, 2e, 72, 2e, 6f, 2e, 31, 19, 30, 17, 6, 3, 55, 4, 3, c, 10, 54, 52, 4f, 50, 49, 43, 30, 31, 2d, 54, 20, 43, 41, 20, 76, 31, 30, 1e, 17, d, 32, 35, 30, 35, 31, 39, 31, 32, 31, 37, 31, 35, 5a, 17, d, 34, 35, 30, 35, 31, 39, 31, 32, 31, 37, 31, 35, 5a, 30, 17, 31, 15, 30, 13, 6, 3, 55, 4, 3, c, c, 54, 52, 4f, 50, 49, 43, 30, 31, 20, 65, 53, 45, 30, 2a, 30, 5, 6, 3, 2b, 65, 6e, 3, 21, 0, dd, b4, cf, 37, 7b, d3, e5, 1, d1, 4a, 27, 84, 73, ea, dc, a5, 96, ed, 79, dd, 9e, 4, aa, 44, c7, 66, 5a, 5c, 78, 92, 8d, 5b, a3, 81, 81, 30, 7f, 30, c, 6, 3, 55, 1d, 13, 1, 1, ff, 4, 2, 30, 0, 30, e, 6, 3, 55, 1d, f, 1, 1, ff, 4, 4, 3, 2, 3, 8, 30, 1f, 6, 3, 55, 1d, 23, 4, 18, 30, 16, 80, 14, 33, c7, 11, 6, c, e8, 5, 13, b5, 67, 7b, 1, 96, 50, 64, 4e, 3b, 43, fa, e7, 30, 3e, 6, 3, 55, 1d, 1f, 1, 1, 0, 4, 34, 30, 32, 30, 30, a0, 2e, a0, 2c, 86, 2a, 68, 74, 74, 70, 3a, 2f, 2f, 70, 6b, 69, 2e, 74, 72, 6f, 70, 69, 63, 73, 71, 75, 61, 72, 65, 2e, 63, 6f, 6d, 2f, 6c, 33, 2f, 74, 30, 31, 2d, 54, 76, 31, 2e, 63, 72, 6c, 30, a, 6, 8, 2a, 86, 48, ce, 3d, 4, 3, 3, 3, 68, 0, 30, 65, 2, 30, 12, d4, a2, 71, c8, e9, 82, 1d, 3d, 68, 4e, e5, 9a, 20, 41, cc, 52, df, c4, 22, 71, 5d, 9e, a8, d8, a0, 9b, 96, bd, fc, 4e, eb, 43, 34, 14, 82, 54, 90, 83, 2a, 35, a9, 40, 72, 6a, d0, 99, 29, 2, 31, 0, e1, ff, 3d, c8, 53, 1, 3a, 2f, 64, 92, d9, 46, 9d, 60, 21, bd, 18, 1b, 23, dd, 9a, ec, 1b, 55, d4, 35, c6, ea, 24, 68, ad, 8d, 3f, ba, 8d, a, 48, a6, 4c, f7, 1d, f0, d3, ad, 9b, aa, eb, 7c, 30, 82, 2, 5e, 30, 82, 1, e4, a0, 3, 2, 1, 2, 2, 2, 75, 31, 30, a, 6, 8, 2a, 86, 48, ce, 3d, 4, 3, 3, 30, 45, 31, b, 30, 9] }
-Example completed successfully!
 ```
 
-## Build & Run
-To build the example, (from the libtropic-rs project root):
-
+### Show Certificate Chain Information
+This currently shows the information of the certificate chain, validates it,
+and verifies the signature of the self-signed root certificate.
 
 ```bash
-cargo build --package tropic01-example-usb
+cargo run --example verify-certs
 ```
-
-To run:
+**Example output:**
 
 ```bash
-./target/debug/tropic01-example-usb
+Running `target/debug/examples/verify-certs /dev/ttyACM0 115200`                                                                                                                                               
+Opening TS1302 dongle on /dev/ttyACM0 @ 115200 baud                                                                                                                                                                 
+Cert store sizes: [467, 610, 655, 604]                                                                                                                                                                              
+------------------------------------------------------------------                                                                                                                                                  
+Certificate 0, DER (467 bytes)                                                                                                                                                                                      
+  Version: V3                                                                                                                                                                                                       
+  Serial: 02:00:11:01:08:5b:19:05:09:0d:00:00:00:00:03:eb                                                                                                                                                           
+  Subject: CN=TROPIC01 eSE                                                                                                                                                                                          
+  Issuer: C=CZ, O=Tropic Square s.r.o., CN=TROPIC01-T CA v1                                                                                                                                                         
+  Validity:                                                                                                                                                                                                         
+    NotBefore: May 19 12:17:15 2025 +00:00                                                                                                                                                                          
+    NotAfter:  May 19 12:17:15 2045 +00:00                                                                                                                                                                          
+    is_valid:  true                                                                                                                                                                                                 
+  Subject Public Key Info:                                                                                                                                                                                          
+    Public Key Algorithm:                                                                                                                                                                                           
+      Oid: 1.3.101.110                                                                                                                                                                                              
+      Parameter: <ABSENT>                                                                                                                                                                                           
+    Unknown key type                                                                                                                                                                                                
+00000000        dd b4 cf 37 7b d3 e5 01 d1 4a 27 84 73 ea dc a5         ݴ�7{��.�J'�s�ܥ                                                                                                                              
+00000010        96 ed 79 dd 9e 04 aa 44 c7 66 5a 5c 78 92 8d 5b         ��yݞ.�D�fZ\x��[                                                                                                                             
+      <Could not parse key as DER>                                                                                                                                                                                  
+  Signature Algorithm: ECDSA                                                                                                                                                                                        
+  Signature Value:                                                                                                                                                                                                  
+      30:65:02:30:12:d4:a2:71:c8:e9:82:1d:3d:68:4e:e5:                                                                                                                                                              
+      9a:20:41:cc:52:df:c4:22:71:5d:9e:a8:d8:a0:9b:96:                                                                                                                                                              
+      bd:fc:4e:eb:43:34:14:82:54:90:83:2a:35:a9:40:72:                                                                                                                                                              
+      6a:d0:99:29:02:31:00:e1:ff:3d:c8:53:01:3a:2f:64:                                                                                                                                                              
+      92:d9:46:9d:60:21:bd:18:1b:23:dd:9a:ec:1b:55:d4:                                                                                                                                                              
+      35:c6:ea:24:68:ad:8d:3f:ba:8d:0a:48:a6:4c:f7:1d:                                                                                                                                                              
+      f0:d3:ad:9b:aa:eb:7c:                                                                                                                                                                                         
+  Extensions:                                                                                                                                                                                                       
+    [crit:true l:2] basicConstraints:                                                                                                                                                                               
+      X509v3 CA: false                                                                                                                                                                                              
+    [crit:true l:4] keyUsage:                                                                                                                                                                                       
+      X509v3 Key Usage: Key Agreement                                                                                                                                                                               
+    [crit:false l:24] authorityKeyIdentifier:                                                                                                                                                                       
+      X509v3 Authority Key Identifier                                                                                                                                                                               
+        Key Identifier: 33:c7:11:06:0c:e8:05:13:b5:67:7b:01:96:50:64:4e:3b:43:fa:e7                                                                                                                                 
+    [crit:false l:52] crlDistributionPoints:                                                                                                                                                                        
+      X509v3 CRL Distribution Points:                                                                                                                                                                               
+        Full Name: FullName([URI("http://pki.tropicsquare.com/l3/t01-Tv1.crl")])                                                                                                                                    
+                                                                                                                                                                                                                    
+Structure validation status: Ok                                                                                                                                                                                     
+  [W] Unknown public key type                                                                                                                                                                                       
+                                                                                                                                                                                                                    
+Signature verification: N/A                                                                                                                                                                                         
+                                                                                                                                                                                                                    
+------------------------------------------------------------------                                                                                                                                                  
+Certificate 1, DER (610 bytes)                                                                                                                                                                                      
+  Version: V3                                                                                                                                                                                                       
+  Serial: 75:31                                                                                                                                                                                                     
+  Subject: C=CZ, O=Tropic Square s.r.o., CN=TROPIC01-T CA v1                                                                                                                                                        
+  Issuer: C=CZ, O=Tropic Square s.r.o., CN=TROPIC01 CA v1                                                                                                                                                           
+  Validity:                                                                                                                                                                                                         
+    NotBefore: Mar 31 12:08:30 2025 +00:00                                                                                                                                                                          
+    NotAfter:  Mar 31 12:08:30 2060 +00:00                                                                                                                                                                          
+    is_valid:  true                                                                                                                                                                                                 
+  Subject Public Key Info:                                                                                                                                                                                          
+    Public Key Algorithm:                                                                                                                                                                                           
+      Oid: id-ecPublicKey                                                                                                                                                                                           
+      Parameter: <PRESENT> secp384r1                                                                                                                                                                                
+00000000        2b 81 04 00 22                                          +�.."                                                                                                                                       
+    EC Public Key: (384 bit)                                                                                                                                                                                        
+        04:a7:0c:32:73:ae:32:27:dc:76:7e:f0:29:3d:95:cc:                                                                                                                                                            
+        10:66:91:e5:bc:9a:a6:c0:28:2b:aa:8f:d4:b3:7c:fa:                                                                                                                                                            
+        c3:0f:ee:0d:87:9c:32:d8:d9:ce:9b:0b:d7:92:4b:5c:                                                                                                                                                            
+        10:09:7b:8c:4a:5e:7e:d6:8d:69:01:85:e3:d1:28:16:                                                                                                                                                            
+        12:56:c0:10:33:c0:29:3d:e3:9a:71:88:a7:2c:ff:9e:                                                                                                                                                            
+        ea:f5:b3:b5:de:e8:98:f9:54:c4:f2:26:c2:ad:e7:0b:                                                                                                                                                            
+        c6:                                                                                                                                                                                                         
+  Signature Algorithm: ECDSA                                                                                                                                                                                        
+  Signature Value:                                                                                                                                                                                                  
+      30:65:02:30:14:ae:c5:25:e5:e8:31:1b:5d:63:12:cf:                                                                                                                                                              
+      0e:bb:22:86:70:05:52:ee:ba:32:d6:41:67:2c:20:f0:                                                                                                                                                              
+      2a:61:2b:77:e9:fc:37:09:c9:65:7c:ec:6d:82:d6:cd:                                                                                                                                                              
+      bd:de:57:c4:02:31:00:bb:9b:77:cc:bb:d9:de:11:08:                                                                                                                                                              
+      64:81:d4:ba:97:72:c3:87:43:59:1e:72:2b:9e:4d:08:                                                                                                                                                              
+      a8:99:40:d8:79:da:24:47:a5:5c:15:f8:41:75:c4:79:                                                                                                                                                              
+      94:63:26:e0:f4:82:af:                                                                                                                                                                                         
+  Extensions:                                                                                                                                                                                                       
+    [crit:false l:22] subjectKeyIdentifier:                                                                                                                                                                         
+      X509v3 Subject Key Identifier: 33:c7:11:06:0c:e8:05:13:b5:67:7b:01:96:50:64:4e:3b:43:fa:e7                                                                                                                    
+    [crit:true l:8] basicConstraints:                                                                                                                                                                               
+      X509v3 CA: true                                                                                                                                                                                               
+    [crit:true l:4] keyUsage:                                                                                                                                                                                       
+      X509v3 Key Usage: Key Cert Sign, CRL Sign                                                                                                                                                                     
+    [crit:false l:24] authorityKeyIdentifier:                                                                                                                                                                       
+      X509v3 Authority Key Identifier                                                                                                                                                                               
+        Key Identifier: 43:ba:b7:bd:a7:cd:e7:28:94:5c:f1:42:cb:d2:f9:cd:55:88:a9:3f                                                                                                                                 
+    [crit:false l:50] crlDistributionPoints:                                                                                                                                                                        
+      X509v3 CRL Distribution Points:                                                                                                                                                                               
+        Full Name: FullName([URI("http://pki.tropicsquare.com/l2/t01v1.crl")])                                                                                                                                      
+
+Structure validation status: Ok                                                                                                                                                                                     
+  [W] year >= 2050 should use GeneralizedTime (notAfter)                                                                                                                                                            
+
+Signature verification: N/A                                                                                                                                                                                         
+
+------------------------------------------------------------------                                                                                                                                                  
+Certificate 2, DER (655 bytes)                                                                                                                                                                                      
+  Version: V3                                                                                                                                                                                                       
+  Serial: 0b:b9                                                                                                                                                                                                     
+  Subject: C=CZ, O=Tropic Square s.r.o., CN=TROPIC01 CA v1                                                                                                                                                          
+  Issuer: C=CZ, O=Tropic Square s.r.o., CN=Tropic Square Root CA v1                                                                                                                                                 
+  Validity:                                                                                                                                                                                                         
+    NotBefore: Mar 31 12:08:29 2025 +00:00                                                                                                                                                                          
+    NotAfter:  Mar 31 12:08:29 2065 +00:00                                                                                                                                                                          
+    is_valid:  true                                                                                                                                                                                                 
+  Subject Public Key Info:                                                                                                                                                                                          
+    Public Key Algorithm:                                                                                                                                                                                           
+      Oid: id-ecPublicKey                                                                                                                                                                                           
+      Parameter: <PRESENT> secp384r1                                                                                                                                                                                
+00000000        2b 81 04 00 22                                          +�.."                                                                                                                                       
+    EC Public Key: (384 bit)                                                                                                                                                                                        
+        04:23:01:be:5b:6e:d9:a8:58:15:3f:57:c6:be:bc:9f:                                                                                                                                                            
+        37:b8:58:bc:28:74:dd:c9:0c:10:41:be:6d:04:e7:bb:                                                                                                                                                            
+        f2:4a:79:68:f2:e5:11:73:d0:ac:ac:89:2e:65:e4:fc:                                                                                                                                                            
+        03:ea:5b:c4:38:1a:60:15:4d:7c:d7:cc:6d:f9:45:91:                                                                                                                                                            
+        65:0f:5f:dc:00:89:19:15:73:14:fc:1f:8d:82:95:f1:                                                                                                                                                            
+        a1:05:71:dd:15:73:e8:68:bf:ec:a9:6c:92:cc:bb:81:                                                                                                                                                            
+        6f:                                                                                                                                                                                                         
+  Signature Algorithm: ECDSA                                                                                                                                                                                        
+  Signature Value:                                                                                                                                                                                                  
+      30:81:88:02:42:00:bc:d0:2d:46:43:29:f3:fc:7d:c8:                                                                                                                                                              
+      17:23:b0:c2:64:37:e3:5c:2b:49:78:2b:ae:97:43:27:                                                                                                                                                              
+      89:f5:08:b5:a2:20:24:0e:6e:3e:4d:12:c1:5c:3b:db:                                                                                                                                                              
+      15:a8:d3:f9:0c:dd:19:07:1e:22:27:c4:89:82:20:b2:                                                                                                                                                              
+      be:f5:84:b2:c2:0f:8f:02:42:01:eb:85:4f:05:f9:a2:                                                                                                                                                              
+      c5:b4:66:d7:98:fe:62:7c:53:9b:98:70:35:31:73:5f:                                                                                                                                                              
+      7a:b4:95:46:fe:5c:fb:9d:f0:bf:3b:69:85:d7:00:ef:                                                                                                                                                              
+      bc:36:df:3f:f0:16:92:f0:ec:e9:8b:b8:db:2f:bb:9b:                                                                                                                                                              
+      f4:09:13:ea:87:ea:12:1a:7a:d2:e7:                                                                                                                                                                             
+  Extensions:                                                                                                                                                                                                       
+    [crit:false l:22] subjectKeyIdentifier:                                                                                                                                                                         
+      X509v3 Subject Key Identifier: 43:ba:b7:bd:a7:cd:e7:28:94:5c:f1:42:cb:d2:f9:cd:55:88:a9:3f                                                                                                                    
+    [crit:true l:8] basicConstraints:                                                                                                                                                                               
+      X509v3 CA: true                                                                                                                                                                                               
+    [crit:true l:4] keyUsage:                                                                                                                                                                                       
+      X509v3 Key Usage: Key Cert Sign, CRL Sign                                                                                                                                                                     
+    [crit:false l:24] authorityKeyIdentifier:                                                                                                                                                                       
+      X509v3 Authority Key Identifier                                                                                                                                                                               
+        Key Identifier: 3c:18:af:71:1a:66:99:b3:79:14:e3:63:96:3f:e2:5c:f3:04:b3:bf                                                                                                                                 
+    [crit:false l:50] crlDistributionPoints:                                                                                                                                                                        
+      X509v3 CRL Distribution Points:                                                                                                                                                                               
+        Full Name: FullName([URI("http://pki.tropicsquare.com/l1/tsrv1.crl")])                                                                                                                                      
+
+Structure validation status: Ok                                                                                                                                                                                     
+  [W] year >= 2050 should use GeneralizedTime (notAfter)                                                                                                                                                            
+
+Signature verification: N/A                                                                                                                                                                                         
+
+------------------------------------------------------------------                                                                                                                                                  
+Certificate 3, DER (604 bytes)                                                                                                                                                                                      
+  Version: V3                                                                                                                                                                                                       
+  Serial: 01:2d                                                                                                                                                                                                     
+  Subject: C=CZ, O=Tropic Square s.r.o., CN=Tropic Square Root CA v1                                                                                                                                                
+  Issuer: C=CZ, O=Tropic Square s.r.o., CN=Tropic Square Root CA v1                                                                                                                                                 
+  Validity:                                                                                                                                                                                                         
+    NotBefore: Mar 31 12:08:25 2025 +00:00                                                                                                                                                                          
+    NotAfter:  Mar 31 12:08:25 2075 +00:00                                                                                                                                                                          
+    is_valid:  true                                                                                                                                                                                                 
+  Subject Public Key Info:                                                                                                                                                                                          
+    Public Key Algorithm:                                                                                                                                                                                           
+      Oid: id-ecPublicKey                                                                                                                                                                                           
+      Parameter: <PRESENT> secp521r1                                                                                                                                                                                
+00000000        2b 81 04 00 23                                          +�..#                                                                                                                                       
+    EC Public Key: (528 bit)                                                                                                                                                                                        
+        04:01:87:cc:ea:62:83:7e:23:09:2d:8a:71:35:78:9f:                                                                                                                                                            
+        cc:6f:bc:3d:35:e7:9f:c0:1f:4f:49:8f:c5:c2:c4:09:                                                                                                                                                            
+        ce:77:2f:90:13:40:09:04:03:e8:ba:4d:97:e1:3f:1e:                                                                                                                                                            
+        75:94:ac:6d:2f:51:fd:22:39:f8:d4:57:76:9f:37:84:                                                                                                                                                            
+        40:a1:80:00:71:2b:f1:6a:48:ea:20:25:83:7b:ef:d0:                                                                                                                                                            
+        50:2a:56:2f:d9:39:41:d5:2c:c4:0e:d9:55:3c:a7:9b:                                                                                                                                                            
+        14:5b:a5:85:f3:24:92:bf:d7:92:eb:96:d9:49:d3:16:                                                                                                                                                            
+        76:cd:09:9f:19:ce:88:48:69:7b:8c:34:30:af:01:6f:                                                                                                                                                            
+        ed:98:5e:1e:b4:                                                                                                                                                                                             
+  Signature Algorithm: ECDSA                                                                                                                                                                                        
+  Signature Value:                                                                                                                                                                                                  
+      30:81:86:02:41:68:41:83:73:39:33:7c:18:2a:4e:e8:                                                                                                                                                              
+      96:cb:fd:5d:a5:92:5f:00:26:e7:a6:fa:3d:ee:61:f4:                                                                                                                                                              
+      9a:46:b5:d9:85:68:58:d3:d8:65:01:be:64:b0:f2:f3:                                                                                                                                                              
+      3b:05:d8:56:de:96:f5:7b:94:7f:49:e7:20:e8:75:09:                                                                                                                                                              
+      0b:30:c3:37:79:18:02:41:2f:dd:b6:8d:16:65:10:45:                                                                                                                                                              
+      1f:e4:c6:2d:ba:e0:cc:d9:52:dc:34:e0:3a:e6:61:78:                                                                                                                                                              
+      18:cc:d0:ea:28:a9:df:f0:45:aa:13:a2:48:a5:f0:66:                                                                                                                                                              
+      b5:11:39:c9:be:f4:71:dd:00:4d:ac:4f:78:db:56:cf:                                                                                                                                                              
+      7b:3e:8d:6f:8f:87:d0:48:d2:                                                                                                                                                                                   
+  Extensions:                                                                                                                                                                                                       
+    [crit:false l:22] subjectKeyIdentifier:                                                                                                                                                                         
+      X509v3 Subject Key Identifier: 3c:18:af:71:1a:66:99:b3:79:14:e3:63:96:3f:e2:5c:f3:04:b3:bf                                                                                                                    
+    [crit:true l:5] basicConstraints:                                                                                                                                                                               
+      X509v3 CA: true                                                                                                                                                                                               
+    [crit:true l:4] keyUsage:                                                                                                                                                                                       
+      X509v3 Key Usage: Key Cert Sign, CRL Sign                                                                                                                                                                     
+Structure validation status: Ok                                                                                                                                                                                     
+  [W] year >= 2050 should use GeneralizedTime (notAfter)                                                                                                                                                            
+
+Signature verification: OK                                                                                                                                                                                          
+  [I] certificate is self-signed                                                                                                                                        
 ```
