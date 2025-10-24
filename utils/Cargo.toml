@@ -12,5 +12,11 @@ rust-version.workspace = true
 [dependencies]
 x509-parser = { git = "https://github.com/sbellem/x509-parser.git", branch = "dev", features = ["verify-aws", "validate"] }
 
+[features]
+default = []
+verify-aws = []
+validate = []
+
+
 [lints]
 workspace = true
