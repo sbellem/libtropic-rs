@@ -1,18 +1,17 @@
 #![allow(deprecated)] // Suppress aes-gcm warnings in tropic01
 
+use std::array::TryFromSliceError;
+use std::error::Error;
 use std::fmt;
 use std::io;
 use std::thread;
-use std::error::Error;
 use std::time::Duration;
-use std::array::TryFromSliceError;
 
-use embedded_hal::spi::{ErrorType, SpiDevice, Error as SpiError, ErrorKind};
+use embedded_hal::spi::{Error as SpiError, ErrorKind, ErrorType, SpiDevice};
 
 use serialport;
 use serialport::{DataBits, FlowControl, Parity, StopBits};
 use tropic01::Error as TropicError;
-
 
 pub struct UsbDevice {
     port: Box<dyn serialport::SerialPort>,
@@ -78,10 +77,8 @@ impl UsbDevice {
 
         let hex_part = &recv[..data.len() * 2];
         for (i, chunk) in hex_part.chunks_exact(2).enumerate() {
-            let hex = std::str::from_utf8(chunk)
-                .map_err(|_| UsbDeviceError::NonUtf8Hex)?;
-            data[i] = u8::from_str_radix(hex, 16)
-                .map_err(|_| UsbDeviceError::InvalidHexDigit)?;
+            let hex = std::str::from_utf8(chunk).map_err(|_| UsbDeviceError::NonUtf8Hex)?;
+            data[i] = u8::from_str_radix(hex, 16).map_err(|_| UsbDeviceError::InvalidHexDigit)?;
         }
         Ok(())
     }
@@ -92,31 +89,34 @@ impl ErrorType for UsbDevice {
 }
 
 impl SpiDevice for UsbDevice {
-    fn transaction(&mut self, operations: &mut [embedded_hal::spi::Operation<'_, u8>]) -> Result<(), Self::Error> {
+    fn transaction(
+        &mut self,
+        operations: &mut [embedded_hal::spi::Operation<'_, u8>],
+    ) -> Result<(), Self::Error> {
         self.cs_high()?;
         for op in operations {
             match op {
                 embedded_hal::spi::Operation::Write(data) => {
                     let mut buf = data.to_vec();
                     self.transfer(&mut buf)?;
-                }
+                },
                 embedded_hal::spi::Operation::Transfer(read, write) => {
                     if read.len() != write.len() {
                         return Err(UsbDeviceError::InvalidBufferLength);
                     }
                     read.copy_from_slice(write);
                     self.transfer(read)?;
-                }
+                },
                 embedded_hal::spi::Operation::TransferInPlace(data) => {
                     self.transfer(data)?;
-                }
+                },
                 embedded_hal::spi::Operation::Read(data) => {
                     data.fill(0);
                     self.transfer(data)?;
-                }
+                },
                 embedded_hal::spi::Operation::DelayNs(_ns) => {
                     thread::sleep(Duration::from_nanos(1));
-                }
+                },
             }
         }
         self.cs_high()?;
@@ -198,9 +198,7 @@ impl From<TropicError<UsbDeviceError, std::convert::Infallible>> for UsbDeviceEr
     fn from(err: TropicError<UsbDeviceError, std::convert::Infallible>) -> Self {
         match err {
             // Special case for BusError which has a UsbDeviceError inside
-            TropicError::BusError(inner) => Self::Tropic(
-                TropicError::BusError(Box::new(inner))
-            ),
+            TropicError::BusError(inner) => Self::Tropic(TropicError::BusError(Box::new(inner))),
             // For variants that don't contain UsbDeviceError, we can map directly
             TropicError::AlarmMode => Self::Tropic(TropicError::AlarmMode),
             TropicError::ChipBusy => Self::Tropic(TropicError::ChipBusy),
@@ -216,12 +214,16 @@ impl From<TropicError<UsbDeviceError, std::convert::Infallible>> for UsbDeviceEr
             TropicError::InvalidPublicKey => Self::Tropic(TropicError::InvalidPublicKey),
             TropicError::L2ResponseError(e) => Self::Tropic(TropicError::L2ResponseError(e)),
             TropicError::L3CmdFailed => Self::Tropic(TropicError::L3CmdFailed),
-            TropicError::L3ResponseBufferOverflow => Self::Tropic(TropicError::L3ResponseBufferOverflow),
+            TropicError::L3ResponseBufferOverflow => {
+                Self::Tropic(TropicError::L3ResponseBufferOverflow)
+            },
             TropicError::NoSession => Self::Tropic(TropicError::NoSession),
             TropicError::ParsingError(e) => Self::Tropic(TropicError::ParsingError(e)),
             TropicError::RequestExceedsSize => Self::Tropic(TropicError::RequestExceedsSize),
             TropicError::Unauthorized => Self::Tropic(TropicError::Unauthorized),
-            TropicError::UnexpectedResponseStatus => Self::Tropic(TropicError::UnexpectedResponseStatus),
+            TropicError::UnexpectedResponseStatus => {
+                Self::Tropic(TropicError::UnexpectedResponseStatus)
+            },
         }
     }
 }

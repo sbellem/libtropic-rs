@@ -1,31 +1,31 @@
 #![allow(deprecated)] // Suppress aes-gcm warnings in tropic01
 
+use std::array::TryFromSliceError;
+use std::convert::TryInto;
 use std::env;
+use std::error::Error;
 use std::fmt;
 use std::io;
 use std::thread;
-use std::convert::TryInto;
-use std::error::Error;
 use std::time::Duration;
-use std::array::TryFromSliceError;
 
 use serialport;
 
 use ed25519_dalek::Signature;
 use ed25519_dalek::VerifyingKey;
 
-use embedded_hal::spi::{ErrorType, SpiDevice, Error as SpiError, ErrorKind};
+use embedded_hal::spi::{Error as SpiError, ErrorKind, ErrorType, SpiDevice};
 //use embedded_hal::spi::{Error as SpiError, ErrorKind};
 
 use rand_core::OsRng;
 use serialport::{DataBits, FlowControl, Parity, StopBits};
 use sha2::Digest as _;
 
-use tropic01::{Error as TropicError, Tropic01};
 use tropic01::EccCurve;
 use tropic01::X25519Dalek;
 use tropic01::keys::SH0PRIV;
 use tropic01::keys::SH0PUB;
+use tropic01::{Error as TropicError, Tropic01};
 
 use tropic01_example_usb::ChipId;
 use tropic01_example_usb::cert::Cert;
@@ -42,20 +42,32 @@ fn parse_and_print_cert(cert_bytes: &[u8]) {
             println!("  Subject: {}", cert.subject());
             println!("  Issuer: {}", cert.issuer());
             println!("  Serial: {}", cert.serial);
-            println!("  Validity: From {} to {}", cert.validity().not_before, cert.validity().not_after);
-            println!("  Signature Algorithm OID: {:?}", cert.signature_algorithm.oid());
-            println!("  Public Key Algorithm OID: {:?}", cert.public_key().algorithm.oid());
+            println!(
+                "  Validity: From {} to {}",
+                cert.validity().not_before,
+                cert.validity().not_after
+            );
+            println!(
+                "  Signature Algorithm OID: {:?}",
+                cert.signature_algorithm.oid()
+            );
+            println!(
+                "  Public Key Algorithm OID: {:?}",
+                cert.public_key().algorithm.oid()
+            );
             println!("  Extensions:");
             for ext in cert.extensions() {
-                println!("    OID: {:?} Critical: {} Value: {:?}", ext.oid, ext.critical, ext.value);
+                println!(
+                    "    OID: {:?} Critical: {} Value: {:?}",
+                    ext.oid, ext.critical, ext.value
+                );
             }
-        }
+        },
         Err(e) => {
             println!("Certificate parse error: {:?}", e);
-        }
+        },
     }
 }
-
 
 /*
 fn main() -> Result<(), SerialTransportError> {
@@ -111,13 +123,13 @@ fn main() -> Result<(), SerialTransportError> {
         "t01_ca_cert",
         "tropicsquare_root_ca_cert",
     ];
-    
+
     let store = res;
     for (i, cert_buf) in store.certs.iter().enumerate() {
         let der = &cert_buf[..store.cert_len[i]];
         let len = der.len();
         println!("Certificate {}, DER ({} bytes)", i, len);
-        
+
         //let (_, cert) = parse_x509_der(&der[..len]).expect("Failed to parse DER");
         let cert = Cert::from_der(&der, len).expect("DER parse failed");
 
@@ -146,9 +158,12 @@ fn main() -> Result<(), SerialTransportError> {
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     env_logger::init();
-    
+
     let args: Vec<String> = env::args().collect();
-    let port_name = args.get(1).cloned().unwrap_or_else(|| "/dev/ttyACM0".to_string());
+    let port_name = args
+        .get(1)
+        .cloned()
+        .unwrap_or_else(|| "/dev/ttyACM0".to_string());
 
     let baud_rate = args
         .get(2)
@@ -156,12 +171,13 @@ async fn main() -> Result<(), anyhow::Error> {
         .filter(|&r| [4800, 9600, 19200, 38400, 115200].contains(&r))
         .unwrap_or(115200);
 
-    println!("Opening TS1302 dongle on {} @ {} baud", port_name, baud_rate);
+    println!(
+        "Opening TS1302 dongle on {} @ {} baud",
+        port_name, baud_rate
+    );
 
     let transport = SerialTransport::new(&port_name, baud_rate)?;
     let mut tropic01 = Tropic01::new(transport);
-
-
 
     let res = tropic01.get_info_chip_id()?;
     println!("ChipId: {res:x?}");

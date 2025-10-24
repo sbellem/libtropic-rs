@@ -2,16 +2,12 @@ use hex;
 use pem::Pem;
 use std::fmt;
 use std::io;
+use utils::x509::*;
 use x509_parser::prelude::{FromDer, X509Certificate};
 use x509_parser::validate::{
-    Validator,
-    VecLogger,
-    X509CertificateValidator,
-    X509StructureValidator
+    Validator, VecLogger, X509CertificateValidator, X509StructureValidator,
 };
 use x509_parser::x509::SubjectPublicKeyInfo;
-use utils::x509::*;
-
 
 pub const NUM_CERTIFICATES: usize = 4;
 
@@ -32,15 +28,16 @@ impl Cert {
         // Lifetime hack: leak the owned data so X509Certificate can live 'static
         let leaked = Box::leak(owned.clone().into_boxed_slice());
         let (_, parsed) = X509Certificate::from_der(leaked).map_err(|_| "Failed to parse DER")?;
-        Ok(Cert { der: owned, len, parsed })
+        Ok(Cert {
+            der: owned,
+            len,
+            parsed,
+        })
     }
 
     /// Returns PEM-encoded certificate as a String using the pem crate.
     pub fn to_pem(&self) -> String {
-        let pem = Pem::new(
-            "CERTIFICATE",
-            self.der[..self.len].to_vec()
-        );
+        let pem = Pem::new("CERTIFICATE", self.der[..self.len].to_vec());
         pem::encode(&pem)
     }
 
@@ -58,12 +55,12 @@ impl Cert {
     pub fn subject(&self) -> String {
         format!("{}", self.parsed.subject())
     }
-    
+
     /// Returns the public key of the subject
     pub fn public_key(&self) -> SubjectPublicKeyInfo<'_> {
         self.parsed.public_key().clone()
     }
-    
+
     /// Show certificate minimal information
     ///
     /// credits:
@@ -162,12 +159,12 @@ impl Cert {
             Ok(_) => {
                 println!("OK");
                 //println!("Signature verification succeeded");
-            }
+            },
             Err(e) => {
                 println!("FAIL");
                 println!("  [E] {:?}", e);
                 //println!("Signature verification failed");
-            }
+            },
         }
 
         Ok(())

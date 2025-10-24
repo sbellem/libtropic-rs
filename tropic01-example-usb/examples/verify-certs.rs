@@ -16,9 +16,12 @@ use x509_parser::x509::SubjectPublicKeyInfo;
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     env_logger::init();
-    
+
     let args: Vec<String> = env::args().collect();
-    let port_name = args.get(1).cloned().unwrap_or_else(|| "/dev/ttyACM0".to_string());
+    let port_name = args
+        .get(1)
+        .cloned()
+        .unwrap_or_else(|| "/dev/ttyACM0".to_string());
 
     let baud_rate = args
         .get(2)
@@ -26,7 +29,10 @@ async fn main() -> Result<(), anyhow::Error> {
         .filter(|&r| [4800, 9600, 19200, 38400, 115200].contains(&r))
         .unwrap_or(115200);
 
-    println!("Opening TS1302 dongle on {} @ {} baud", port_name, baud_rate);
+    println!(
+        "Opening TS1302 dongle on {} @ {} baud",
+        port_name, baud_rate
+    );
 
     let usb_device = UsbDevice::new(&port_name, baud_rate)?;
     let mut tropic = Tropic01::new(usb_device);
@@ -40,14 +46,14 @@ async fn main() -> Result<(), anyhow::Error> {
     //    "t01_ca_cert",
     //    "tropicsquare_root_ca_cert",
     //];
-    
+
     let mut certs: ArrayVec<X509Certificate<'_>, NUM_CERTIFICATES> = ArrayVec::new();
     for (i, cert_buf) in store.certs.iter().enumerate().rev() {
         let der = &cert_buf[..store.cert_len[i]];
         let len = der.len();
         println!("------------------------------------------------------------------");
         println!("Certificate {}, DER ({} bytes)", i, len);
-        
+
         let cert = Cert::from_der(&der, len).expect("DER parse failed");
         let _ = cert.print_min_info();
         let _ = cert.print_basic_info();
@@ -61,7 +67,7 @@ async fn main() -> Result<(), anyhow::Error> {
             let issuer_cert = certs.get(0).unwrap();
             let res = cert.print_verification_info(issuer_cert);
         } else {
-            let issuer_cert = certs.get(2-i).unwrap();
+            let issuer_cert = certs.get(2 - i).unwrap();
             let res = cert.print_verification_info(issuer_cert);
         }
 
