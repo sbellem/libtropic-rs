@@ -1,7 +1,7 @@
 /// Example to verify the secure element's provisioned certificate chain
 use std::env;
-use std::fs::File;
-use std::io::Write;
+//use std::fs::File;
+//use std::io::Write;
 
 use tropic01::Tropic01;
 use tropic01_example_usb::cert::Cert;
@@ -28,12 +28,12 @@ async fn main() -> Result<(), anyhow::Error> {
     let res = tropic.get_info_cert_store()?;
     println!("Cert store sizes: {:?}\n", res.cert_len);
 
-    const CERT_NAMES: [&str; 4] = [
-        "t01_ese_cert",
-        "t01_xxxx_ca_cert",
-        "t01_ca_cert",
-        "tropicsquare_root_ca_cert",
-    ];
+    //const CERT_NAMES: [&str; 4] = [
+    //    "t01_ese_cert",
+    //    "t01_xxxx_ca_cert",
+    //    "t01_ca_cert",
+    //    "tropicsquare_root_ca_cert",
+    //];
     
     let store = res;
     for (i, cert_buf) in store.certs.iter().enumerate() {
