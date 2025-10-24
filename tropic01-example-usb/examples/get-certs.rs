@@ -52,7 +52,7 @@ async fn main() -> Result<(), anyhow::Error> {
         let _ = cert.print_basic_info();
         let _ = cert.print_extension_info();
         let _ = cert.print_validation_info();
-        let _ = cert.print_verification_info();
+        //let _ = cert.print_verification_info();
 
         //println!("PEM:\n{}", cert.to_pem());
         //println!("Hex:\n{}", cert.to_hex());
