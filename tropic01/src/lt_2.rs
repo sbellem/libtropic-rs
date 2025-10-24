@@ -1,6 +1,6 @@
-extern crate alloc;
-use alloc::vec::Vec;
-use alloc::vec;
+//extern crate alloc;
+//use alloc::vec::Vec;
+//use alloc::vec;
 
 use core::iter::repeat_n;
 
@@ -171,7 +171,8 @@ pub enum PublicKeyError {
 /// The certificate store ...
 #[derive(Debug)]
 pub struct CertStore {
-    pub certs: [Vec<u8>; NUM_CERTIFICATES],
+    //pub certs: [Vec<u8>; NUM_CERTIFICATES],
+    pub certs: [ArrayVec<u8, CERTS_BUF_LEN>; NUM_CERTIFICATES],
     pub cert_len: [usize; NUM_CERTIFICATES],
 }
 
@@ -261,12 +262,13 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
         &mut self,
     ) -> Result<CertStore, Error<<SPI as SpiErrorType>::Error, <CS as GpioErrorType>::Error>> {
         let mut store = CertStore {
-            certs: [
-                vec![0u8; CERTS_BUF_LEN],
-                vec![0u8; CERTS_BUF_LEN],
-                vec![0u8; CERTS_BUF_LEN],
-                vec![0u8; CERTS_BUF_LEN],
-            ],
+            certs: core::array::from_fn(|_| ArrayVec::<u8, CERTS_BUF_LEN>::new()),
+            //certs: [
+            //    vec![0u8; CERTS_BUF_LEN],
+            //    vec![0u8; CERTS_BUF_LEN],
+            //    vec![0u8; CERTS_BUF_LEN],
+            //    vec![0u8; CERTS_BUF_LEN],
+            //],
             cert_len: [0; NUM_CERTIFICATES],
         };
         let mut current_cert = 0;
@@ -301,8 +303,10 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
             let till_now = cert_head_offsets[current_cert];
             let till_end = store.cert_len[current_cert].saturating_sub(till_now);
             let to_copy = till_end.min(available);
+
             store.certs[current_cert][till_now..till_now+to_copy]
                 .copy_from_slice(&first_chunk[head..head+to_copy]);
+
             cert_head_offsets[current_cert] += to_copy;
             head += to_copy;
             available -= to_copy;
