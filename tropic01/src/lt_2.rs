@@ -1,10 +1,7 @@
-//extern crate alloc;
-//use alloc::vec::Vec;
-//use alloc::vec;
-
 use core::iter::repeat_n;
 
 use aes_gcm::aead::arrayvec::ArrayVec;
+use aes_gcm::aead::Buffer;
 use embedded_hal::digital::ErrorType as GpioErrorType;
 use embedded_hal::digital::OutputPin;
 use embedded_hal::spi::ErrorType as SpiErrorType;
@@ -167,20 +164,18 @@ pub enum PublicKeyError {
 }
 
 
-/// XXX
-/// The certificate store ...
+/// TODO: doc
 #[derive(Debug)]
 pub struct CertStore {
-    //pub certs: [Vec<u8>; NUM_CERTIFICATES],
     pub certs: [ArrayVec<u8, CERTS_BUF_LEN>; NUM_CERTIFICATES],
     pub cert_len: [usize; NUM_CERTIFICATES],
 }
 
-/// XXX
+/// TODO: doc
 impl CertStore {
-    pub fn cert_der(&self, idx: usize) -> Option<&[u8]> {
-        if idx < NUM_CERTIFICATES && self.cert_len[idx] > 0 {
-            Some(&self.certs[idx][..self.cert_len[idx]])
+    pub fn cert_der(&self, i: usize) -> Option<&[u8]> {
+        if i < NUM_CERTIFICATES && self.cert_len[i] > 0 {
+            Some(self.certs[i].as_slice())
         } else {
             None
         }
@@ -257,18 +252,14 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
     }
 
 
-    /// Reads the full certificate store from the chip, parses header, and fills buffers for each certificate.
+    /// TODO: Review
+    /// Reads the full certificate store from the chip,
+    /// parses header, and fills buffers for each certificate.
     pub fn get_info_cert_store(
         &mut self,
     ) -> Result<CertStore, Error<<SPI as SpiErrorType>::Error, <CS as GpioErrorType>::Error>> {
         let mut store = CertStore {
             certs: core::array::from_fn(|_| ArrayVec::<u8, CERTS_BUF_LEN>::new()),
-            //certs: [
-            //    vec![0u8; CERTS_BUF_LEN],
-            //    vec![0u8; CERTS_BUF_LEN],
-            //    vec![0u8; CERTS_BUF_LEN],
-            //    vec![0u8; CERTS_BUF_LEN],
-            //],
             cert_len: [0; NUM_CERTIFICATES],
         };
         let mut current_cert = 0;
@@ -284,29 +275,33 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
         if first_chunk.len() < 2 + NUM_CERTIFICATES * 2 {
             return Err(Error::InvalidL2Response);
         }
-        let mut idx = 0;
-        let version = first_chunk[idx]; idx += 1;
-        let cert_count = first_chunk[idx]; idx += 1;
+        let mut i = 0;
+        let version = first_chunk[i]; i += 1;
+        let cert_count = first_chunk[i]; i += 1;
         if version != CERT_STORE_VERSION || cert_count as usize != NUM_CERTIFICATES {
             return Err(Error::InvalidL2Response);
         }
-        for i in 0..NUM_CERTIFICATES {
-            let hi = first_chunk[idx] as usize; idx += 1;
-            let lo = first_chunk[idx] as usize; idx += 1;
-            store.cert_len[i] = (hi << 8) | lo;
+        for n in 0..NUM_CERTIFICATES {
+            let hi = first_chunk[i] as usize; i += 1;
+            let lo = first_chunk[i] as usize; i += 1;
+            store.cert_len[n] = (hi << 8) | lo;
         }
 
         // Copy from remainder of first chunk
-        let mut head = idx;
-        let mut available = first_chunk.len() - idx;
+        let mut head = i;
+        let mut available = first_chunk.len() - i;
         {
             let till_now = cert_head_offsets[current_cert];
             let till_end = store.cert_len[current_cert].saturating_sub(till_now);
             let to_copy = till_end.min(available);
 
-            store.certs[current_cert][till_now..till_now+to_copy]
-                .copy_from_slice(&first_chunk[head..head+to_copy]);
-
+            // ensure we won't overflow the fixed-capacity ArrayVec
+            let rem = CERTS_BUF_LEN - store.certs[current_cert].len();
+            if to_copy > rem {
+                return Err(Error::L3ResponseBufferOverflow);
+            }
+            let _ = store.certs[current_cert]
+                .extend_from_slice(&first_chunk[head..head+to_copy]);
             cert_head_offsets[current_cert] += to_copy;
             head += to_copy;
             available -= to_copy;
@@ -317,8 +312,13 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
                 let till_now = cert_head_offsets[current_cert];
                 let till_end = store.cert_len[current_cert].saturating_sub(till_now);
                 let to_copy = till_end.min(available);
-                store.certs[current_cert][till_now..till_now+to_copy]
-                    .copy_from_slice(&first_chunk[head..head+to_copy]);
+
+                let rem = CERTS_BUF_LEN - store.certs[current_cert].len();
+                if to_copy > rem {
+                    return Err(Error::L3ResponseBufferOverflow);
+                }
+                let _ = store.certs[current_cert]
+                    .extend_from_slice(&first_chunk[head..head+to_copy]);
                 cert_head_offsets[current_cert] += to_copy;
                 head += to_copy;
                 available -= to_copy;
@@ -336,8 +336,13 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
             let till_now = cert_head_offsets[current_cert];
             let till_end = store.cert_len[current_cert].saturating_sub(till_now);
             let to_copy = till_end.min(available);
-            store.certs[current_cert][till_now..till_now+to_copy]
-                .copy_from_slice(&chunk[head..head+to_copy]);
+
+            let rem = CERTS_BUF_LEN - store.certs[current_cert].len();
+            if to_copy > rem {
+                return Err(Error::L3ResponseBufferOverflow);
+            }
+            let _ = store.certs[current_cert]
+                .extend_from_slice(&chunk[head..head+to_copy]);
             cert_head_offsets[current_cert] += to_copy;
             head += to_copy;
             available -= to_copy;
@@ -347,8 +352,13 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
                 let till_now = cert_head_offsets[current_cert];
                 let till_end = store.cert_len[current_cert].saturating_sub(till_now);
                 let to_copy = till_end.min(available);
-                store.certs[current_cert][till_now..till_now+to_copy]
-                    .copy_from_slice(&chunk[head..head+to_copy]);
+
+                let rem = CERTS_BUF_LEN - store.certs[current_cert].len();
+                if to_copy > rem {
+                    return Err(Error::L3ResponseBufferOverflow);
+                }
+                let _ = store.certs[current_cert]
+                    .extend_from_slice(&chunk[head..head+to_copy]);
                 cert_head_offsets[current_cert] += to_copy;
                 head += to_copy;
                 available -= to_copy;
