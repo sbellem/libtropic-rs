@@ -1,11 +1,17 @@
 /// Example to verify the secure element's provisioned certificate chain
+use arrayvec::ArrayVec;
+
 use std::env;
 //use std::fs::File;
 //use std::io::Write;
 
 use tropic01::Tropic01;
 use tropic01_example_usb::cert::Cert;
+use tropic01_example_usb::cert::NUM_CERTIFICATES;
 use tropic01_example_usb::port::UsbDevice;
+
+use x509_parser::prelude::{FromDer, X509Certificate};
+use x509_parser::x509::SubjectPublicKeyInfo;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -25,8 +31,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let usb_device = UsbDevice::new(&port_name, baud_rate)?;
     let mut tropic = Tropic01::new(usb_device);
 
-    let res = tropic.get_info_cert_store()?;
-    println!("Cert store sizes: {:?}\n", res.cert_len);
+    let store = tropic.get_info_cert_store()?;
+    println!("Cert store sizes: {:?}\n", store.cert_len);
 
     //const CERT_NAMES: [&str; 4] = [
     //    "t01_ese_cert",
@@ -35,19 +41,40 @@ async fn main() -> Result<(), anyhow::Error> {
     //    "tropicsquare_root_ca_cert",
     //];
     
-    let store = res;
-    for (i, cert_buf) in store.certs.iter().enumerate() {
+    //let mut public_keys: ArrayVec<SubjectPublicKeyInfo<'_>, NUM_CERTIFICATES> = ArrayVec::new();
+    let mut certs: ArrayVec<X509Certificate<'_>, NUM_CERTIFICATES> = ArrayVec::new();
+    for (i, cert_buf) in store.certs.iter().enumerate().rev() {
         let der = &cert_buf[..store.cert_len[i]];
         let len = der.len();
         println!("------------------------------------------------------------------");
         println!("Certificate {}, DER ({} bytes)", i, len);
         
         let cert = Cert::from_der(&der, len).expect("DER parse failed");
+        let _ = cert.print_min_info();
+        //let _ = cert.print_basic_info();
+        //let _ = cert.print_extension_info();
+        //let _ = cert.print_validation_info();
 
-        let _ = cert.print_basic_info();
-        let _ = cert.print_extension_info();
-        let _ = cert.print_validation_info();
-        let _ = cert.print_verification_info();
+        let (_, _cert) = X509Certificate::from_der(der).expect("DER parse failed");
+            //.map_err(|e| anyhow::anyhow!("DER parse failed: {:?}", e))?;
+        certs.push(_cert.clone());
+
+
+        //let _ = cert.print_verification_info(None);
+        if i == 3 {
+            let issuer_cert = certs.get(0).unwrap();
+            //let _ = cert.print_verification_info(Some(&issuer_cert.tbs_certificate.subject_pki));
+            let res = _cert.verify_signature(Some(&issuer_cert.tbs_certificate.subject_pki));
+            println!("Signature Verification: {res:?}");
+        } else {
+            let issuer_cert = certs.get(2-i).unwrap();
+            //let _ = cert.print_verification_info(Some(&issuer_cert.tbs_certificate.subject_pki));
+            let res = _cert.verify_signature(Some(&issuer_cert.tbs_certificate.subject_pki));
+            println!("Signature Verification: {res:?}");
+        }
+
+        //public_keys.push(cert.public_key());
+
 
         //println!("Serial: {}", cert.serial_hex());
         //println!("Serial: {}", cert.parsed.serial);

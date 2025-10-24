@@ -9,7 +9,11 @@ use x509_parser::validate::{
     X509CertificateValidator,
     X509StructureValidator
 };
+use x509_parser::x509::SubjectPublicKeyInfo;
 use utils::x509::*;
+
+
+pub const NUM_CERTIFICATES: usize = 4;
 
 const VALIDATE_ERRORS_FATAL: bool = false;
 
@@ -53,6 +57,32 @@ impl Cert {
     /// Returns the subject as a String.
     pub fn subject(&self) -> String {
         format!("{}", self.parsed.subject())
+    }
+    
+    /// Returns the public key of the subject
+    pub fn public_key(&self) -> SubjectPublicKeyInfo<'_> {
+        self.parsed.public_key().clone()
+    }
+    
+    /// Show certificate minimal information
+    ///
+    /// credits:
+    ///     repo: https://github.com/rusticata/x509-parser
+    ///     commit: b7dcc9397b596cf9fa3df65115c3f405f1748b2a
+    ///     file: examples/print-cert.rs
+    pub fn print_min_info(&self) -> io::Result<()> {
+        let x509 = self.parsed.clone();
+
+        let version = x509.version();
+        if version.0 < 3 {
+            println!("  Version: {version}");
+        } else {
+            println!("  Version: INVALID({})", version.0);
+        }
+        println!("  Serial: {}", x509.tbs_certificate.raw_serial_as_string());
+        println!("  Subject: {}", x509.subject());
+        println!("  Issuer: {}", x509.issuer());
+        Ok(())
     }
 
     /// Show certificate information
@@ -125,7 +155,7 @@ impl Cert {
         Ok(())
     }
 
-    pub fn print_verification_info(&self) -> io::Result<()> {
+    pub fn print_verification_info(&self, public_key: Option<&SubjectPublicKeyInfo<'_>>) -> io::Result<()> {
         let x509 = self.parsed.clone();
         print!("Signature verification: ");
         if x509.subject().to_string() == x509.issuer().to_string() {
