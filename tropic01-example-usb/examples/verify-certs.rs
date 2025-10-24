@@ -41,7 +41,6 @@ async fn main() -> Result<(), anyhow::Error> {
     //    "tropicsquare_root_ca_cert",
     //];
     
-    //let mut public_keys: ArrayVec<SubjectPublicKeyInfo<'_>, NUM_CERTIFICATES> = ArrayVec::new();
     let mut certs: ArrayVec<X509Certificate<'_>, NUM_CERTIFICATES> = ArrayVec::new();
     for (i, cert_buf) in store.certs.iter().enumerate().rev() {
         let der = &cert_buf[..store.cert_len[i]];
@@ -51,43 +50,20 @@ async fn main() -> Result<(), anyhow::Error> {
         
         let cert = Cert::from_der(&der, len).expect("DER parse failed");
         let _ = cert.print_min_info();
-        //let _ = cert.print_basic_info();
-        //let _ = cert.print_extension_info();
-        //let _ = cert.print_validation_info();
+        let _ = cert.print_basic_info();
+        let _ = cert.print_extension_info();
+        let _ = cert.print_validation_info();
 
         let (_, _cert) = X509Certificate::from_der(der).expect("DER parse failed");
-            //.map_err(|e| anyhow::anyhow!("DER parse failed: {:?}", e))?;
         certs.push(_cert.clone());
 
-
-        //let _ = cert.print_verification_info(None);
         if i == 3 {
             let issuer_cert = certs.get(0).unwrap();
-            //let _ = cert.print_verification_info(Some(&issuer_cert.tbs_certificate.subject_pki));
-            let res = _cert.verify_signature(Some(&issuer_cert.tbs_certificate.subject_pki));
-            println!("Signature Verification: {res:?}");
+            let res = cert.print_verification_info(issuer_cert);
         } else {
             let issuer_cert = certs.get(2-i).unwrap();
-            //let _ = cert.print_verification_info(Some(&issuer_cert.tbs_certificate.subject_pki));
-            let res = _cert.verify_signature(Some(&issuer_cert.tbs_certificate.subject_pki));
-            println!("Signature Verification: {res:?}");
+            let res = cert.print_verification_info(issuer_cert);
         }
-
-        //public_keys.push(cert.public_key());
-
-
-        //println!("Serial: {}", cert.serial_hex());
-        //println!("Serial: {}", cert.parsed.serial);
-        //println!("Subject: {}", cert.subject());
-        //println!("PEM:\n{}", cert.to_pem());
-        //println!("Hex:\n{}", cert.to_hex());
-
-        //std::fs::write(format!("_{}.pem", CERT_NAMES[i]), cert.to_pem())?;
-        //std::fs::write(format!("{}.der", CERT_NAMES[i]), &cert.der)?;
-        //let filename = format!("{}.der", CERT_NAMES[i]);
-        //let mut file = File::create(&filename)?;
-        //file.write_all(&der[..len])?;
-        //println!("Wrote {} bytes to {}", len, filename);
 
         println!();
     }

@@ -155,26 +155,19 @@ impl Cert {
         Ok(())
     }
 
-    pub fn print_verification_info(&self, public_key: Option<&SubjectPublicKeyInfo<'_>>) -> io::Result<()> {
+    pub fn print_verification_info(&self, issuer_cert: &X509Certificate<'_>) -> io::Result<()> {
         let x509 = self.parsed.clone();
         print!("Signature verification: ");
-        if x509.subject().to_string() == x509.issuer().to_string() {
-            match x509.verify_signature(None) {
-                Ok(_) => {
-                    println!("OK");
-                    println!("  [I] certificate is self-signed");
-                }
-                Err(e) => {
-                    println!("FAIL");
-                    println!("  [E] {:?}", e);
-                    println!(
-                        "  [W] certificate looks self-signed, but signature verification failed"
-                    );
-                }
+        match x509.verify_signature(Some(&issuer_cert.tbs_certificate.subject_pki)) {
+            Ok(_) => {
+                println!("OK");
+                //println!("Signature verification succeeded");
             }
-        } else {
-            // if subject is different from issuer, we cannot verify certificate without the public key of the issuer
-            println!("N/A");
+            Err(e) => {
+                println!("FAIL");
+                println!("  [E] {:?}", e);
+                //println!("Signature verification failed");
+            }
         }
 
         Ok(())
