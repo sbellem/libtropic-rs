@@ -45,7 +45,7 @@ const PROTOCOL_NAME: &[u8; 32] = b"Noise_KK1_25519_AESGCM_SHA256\x00\x00\x00";
 const CERT_STORE_VERSION: u8 = 1;
 const NUM_CERTIFICATES: usize = 4;
 const CERTS_BUF_LEN: usize = 700;
-const CHUNK_SIZE: usize = 128;
+//const CHUNK_SIZE: usize = 128;
 
 
 #[derive(Debug)]
