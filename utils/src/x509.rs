@@ -18,9 +18,9 @@ use x509_parser::prelude::*;
 use x509_parser::public_key::PublicKey;
 use x509_parser::signature_algorithm::SignatureAlgorithm;
 
-const PARSE_ERRORS_FATAL: bool = false;
+pub const PARSE_ERRORS_FATAL: bool = false;
 #[cfg(feature = "validate")]
-const VALIDATE_ERRORS_FATAL: bool = false;
+pub const VALIDATE_ERRORS_FATAL: bool = false;
 
 fn print_hex_dump(bytes: &[u8], max_len: usize) {
     let m = min(bytes.len(), max_len);
