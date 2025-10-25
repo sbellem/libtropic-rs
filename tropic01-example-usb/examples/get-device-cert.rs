@@ -1,14 +1,23 @@
 /// Example to verify the secure element's provisioned certificate chain
+
 use std::env;
 
 use tropic01::Tropic01;
 use tropic01_example_usb::port::UsbDevice;
 
+use utils::x509::print_hex_dump;
 use utils::x509::print_x509_info;
 use utils::x509::PARSE_ERRORS_FATAL;
 
+use x509_parser::asn1_rs::Any;
+use x509_parser::asn1_rs::Input;
 use x509_parser::certificate::X509Certificate;
 use x509_parser::prelude::FromDer; // from asn1_rs
+use x509_parser::public_key::PublicKey; // from asn1_rs
+use x509_parser::prelude::DerParser;
+
+//use x25519_dalek::{PublicKey, StaticSecret};
+
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -34,7 +43,10 @@ async fn main() -> Result<(), anyhow::Error> {
     let usb_device = UsbDevice::new(&port_name, baud_rate)?;
     let mut tropic = Tropic01::new(usb_device);
 
-    let cert = tropic.get_info_cert()?;
+    //let cert = tropic.get_info_cert()?;
+    //println!("pk 2: {:?}", cert.public_key());
+    let store = tropic.get_info_cert_store()?;
+    let device_cert_bytes = store.certs.first().expect("cert bytes");
 
     //println!("device cert: {:?}", cert);
     //println!("device cert data: {:?}", cert.as_bytes());
@@ -42,21 +54,60 @@ async fn main() -> Result<(), anyhow::Error> {
     //let res = X509Certificate::from_der(cert.as_bytes());
     //println!("x509: {:?}", res);
 
-    match X509Certificate::from_der(cert.as_bytes()) {
-        Ok((_, x509)) => {
-            print_x509_info(&x509)?;
-            //println!("x509: {:?}", x509);
-            Ok(())
-        }
+    //let x509 = match X509Certificate::from_der(cert.as_bytes()) {
+    let x509 = match X509Certificate::from_der(device_cert_bytes) {
+        Ok((_, x509)) => x509,
         Err(e) => {
-            let s = format!("Error while parsing cert bytes: {e}");
+            let msg = format!("Error while parsing cert bytes: {e}");
             if PARSE_ERRORS_FATAL {
-                Err(anyhow::anyhow!(s))
+                return Err(anyhow::anyhow!(msg));
             } else {
-                eprintln!("{s}");
-                Ok(())
+                log::error!("{}", msg);
+                return Ok(());
             }
         }
+    };
+    print_x509_info(&x509)?;
+
+    let pk = x509.public_key();
+    println!("public key algo: {:?}:", pk.algorithm);
+    println!("pk: {:?}", pk.parsed());
+
+
+    let spki = &x509.tbs_certificate.subject_pki; // SubjectPublicKeyInfo
+    // subject_public_key is a bit string object; the raw bytes are in `.data`
+    //let cert_pubkey_bytes = &spki.subject_public_key.data;
+    let cert_pubkey_bytes = &spki.parsed();
+    
+    // Compare lengths + contents
+    if cert_pubkey_bytes == &pk.parsed() {
+        println!("Public key bytes match the certificate's subject public key");
+    } else {
+        println!("Mismatch: cert pubkey = {:02X?}, raw key = {:02X?}",
+                 cert_pubkey_bytes, pk);
     }
-    //Ok(())
+
+    //let st_pub = PublicKey::from(cert_pubkey_bytes);
+    //let parsed_pk = pk.parsed().expect("pk parsed");
+    //println!("parsed pk: {:?}", parsed_pk);
+
+
+    match pk.parsed() {
+        Ok(PublicKey::Unknown(b)) => {
+            println!("    Unknown key type");
+            print_hex_dump(b, 256);
+            if let Ok((rem, res)) = Any::parse_der(Input::from(b)) {
+                eprintln!("rem: {} bytes", rem.len());
+                eprintln!("{res:?}");
+            } else {
+                eprintln!("      <Could not parse key as DER>");
+            }
+        }
+        _ => println!("..."),
+        Err(_) => {
+            println!("    INVALID PUBLIC KEY");
+        }
+    }
+
+    Ok(())
 }

@@ -22,7 +22,7 @@ pub const PARSE_ERRORS_FATAL: bool = false;
 #[cfg(feature = "validate")]
 pub const VALIDATE_ERRORS_FATAL: bool = false;
 
-fn print_hex_dump(bytes: &[u8], max_len: usize) {
+pub fn print_hex_dump(bytes: &[u8], max_len: usize) {
     let m = min(bytes.len(), max_len);
     print!("{}", &bytes[..m].to_hex(16));
     if bytes.len() > max_len {
