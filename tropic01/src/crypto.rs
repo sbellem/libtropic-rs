@@ -147,6 +147,7 @@ pub(super) fn aesgcm_encrypt(
     buf: &mut ArrayVec<u8, L3_FRAME_MAX_SIZE>,
 ) -> Result<[u8; 16], CryptoError> {
     let nonce = nonce.as_ref().into();
+    #[allow(deprecated)]
     let key = Key::<Aes256Gcm>::from_slice(key.as_ref());
     let mut cipher = Aes256Gcm::new(key);
 
@@ -164,6 +165,7 @@ pub(super) fn aesgcm_decrypt(
     buf: &mut [u8],
 ) -> Result<(), CryptoError> {
     let nonce = nonce.as_ref().into();
+    #[allow(deprecated)]
     let key = Key::<Aes256Gcm>::from_slice(key.as_ref());
     let mut cipher = Aes256Gcm::new(key);
     let tag = tag.into();
