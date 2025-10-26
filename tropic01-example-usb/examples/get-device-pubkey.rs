@@ -1,11 +1,24 @@
 /// Example to verify the secure element's provisioned certificate chain
+
 use std::env;
-use std::fs::File;
-use std::io::Write;
 
 use tropic01::Tropic01;
-use tropic01_example_usb::cert::Cert;
 use tropic01_example_usb::port::UsbDevice;
+
+use utils::x509::print_hex_dump;
+use utils::x509::print_x509_info;
+use utils::x509::PARSE_ERRORS_FATAL;
+
+use x509_parser::asn1_rs::Any;
+use x509_parser::asn1_rs::Input;
+use x509_parser::certificate::X509Certificate;
+use x509_parser::prelude::FromDer; // from asn1_rs
+use x509_parser::public_key::PublicKey; // from asn1_rs
+use x509_parser::prelude::DerParser;
+
+//use x25519_dalek::{PublicKey, StaticSecret};
+use x25519_dalek;
+
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -31,40 +44,76 @@ async fn main() -> Result<(), anyhow::Error> {
     let usb_device = UsbDevice::new(&port_name, baud_rate)?;
     let mut tropic = Tropic01::new(usb_device);
 
+    //let cert = tropic.get_info_cert()?;
+    //println!("pk 2: {:?}", cert.public_key());
     let store = tropic.get_info_cert_store()?;
-    println!("Cert store sizes: {:?}\n", store.cert_len);
+    let device_cert_bytes = store.certs.first().expect("cert bytes");
 
-    const CERT_NAMES: [&str; 4] = [
-        "t01_ese_cert",
-        "t01_xxxx_ca_cert",
-        "t01_ca_cert",
-        "tropicsquare_root_ca_cert",
-    ];
+    //println!("device cert: {:?}", cert);
+    //println!("device cert data: {:?}", cert.as_bytes());
 
-    for (i, cert_buf) in store.certs.iter().enumerate().rev() {
-        let der = &cert_buf[..store.cert_len[i]];
-        let len = der.len();
-        println!("------------------------------------------------------------------");
-        println!("Certificate {}, DER ({} bytes)", i, len);
+    //let res = X509Certificate::from_der(cert.as_bytes());
+    //println!("x509: {:?}", res);
 
-        let cert = Cert::from_der(&der, len).expect("DER parse failed");
+    //let x509 = match X509Certificate::from_der(cert.as_bytes()) {
+    let x509 = match X509Certificate::from_der(device_cert_bytes) {
+        Ok((_, x509)) => x509,
+        Err(e) => {
+            let msg = format!("Error while parsing cert bytes: {e}");
+            if PARSE_ERRORS_FATAL {
+                return Err(anyhow::anyhow!(msg));
+            } else {
+                log::error!("{}", msg);
+                return Ok(());
+            }
+        }
+    };
+    print_x509_info(&x509)?;
 
-        let _ = cert.print_basic_info();
-        let _ = cert.print_extension_info();
-        let _ = cert.print_validation_info();
-        //let _ = cert.print_verification_info();
+    let pk = x509.public_key();
+    println!("public key algo: {:?}:", pk.algorithm);
+    println!("pk: {:?}", pk.parsed());
 
-        //println!("PEM:\n{}", cert.to_pem());
-        //println!("Hex:\n{}", cert.to_hex());
 
-        //std::fs::write(format!("_{}.pem", CERT_NAMES[i]), cert.to_pem())?;
-        std::fs::write(format!("{}.der", CERT_NAMES[i]), &cert.der)?;
-        let filename = format!("{}.der", CERT_NAMES[i]);
-        let mut file = File::create(&filename)?;
-        file.write_all(&der[..len])?;
-        println!("Wrote {} bytes to {}", len, filename);
+    let spki = &x509.tbs_certificate.subject_pki; // SubjectPublicKeyInfo
+    // subject_public_key is a bit string object; the raw bytes are in `.data`
+    //let cert_pubkey_bytes = &spki.subject_public_key.data;
+    let cert_pubkey_bytes = &spki.parsed();
 
-        println!();
+    // Compare lengths + contents
+    if cert_pubkey_bytes == &pk.parsed() {
+        println!("Public key bytes match the certificate's subject public key");
+    } else {
+        println!("Mismatch: cert pubkey = {:02X?}, raw key = {:02X?}",
+                 cert_pubkey_bytes, pk);
+    }
+
+    //let st_pub = PublicKey::from(cert_pubkey_bytes);
+    //let parsed_pk = pk.parsed().expect("pk parsed");
+    //println!("parsed pk: {:?}", parsed_pk);
+
+
+    match pk.parsed() {
+        Ok(PublicKey::Unknown(b)) => {
+            println!("    Unknown key type");
+            print_hex_dump(b, 256);
+
+            let mut pubkey_arr = [0u8; 32];
+            pubkey_arr.copy_from_slice(b);
+            let peer_pk = x25519_dalek::PublicKey::from(pubkey_arr);
+            println!("peer_pk: {:?}", peer_pk);
+
+            if let Ok((rem, res)) = Any::parse_der(Input::from(b)) {
+                eprintln!("rem: {} bytes", rem.len());
+                eprintln!("res: {res:?}");
+            } else {
+                eprintln!("      <Could not parse key as DER>");
+            }
+        }
+        Err(_) => {
+            println!("    INVALID PUBLIC KEY");
+        },
+        _ => println!("...")
     }
 
     Ok(())
