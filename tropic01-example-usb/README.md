@@ -15,7 +15,14 @@ nix develop
 > Note the two optional arguments: `/dev/ttyACM0` and `115200`. These may differ
 > on your system. Modify accordingly if necessary.
 
-Run examples:
+Current examples are under the [./examples](./examples) directory, and include:
+
+* `get-certs` to read the certificate store and output them to der files
+* `get-device-cert` to read the device certificate and show its information on screen
+* `get-device-pubkey` to read the public key from the device certificate
+* `show-chip-id` to read the chip identification data, such as the unique serial number
+* `verify-certs` to read the certificate chain, validate it, and veritfy the signatures
+
 
 ### Show Chip Identification Information
 
@@ -55,7 +62,7 @@ Prov specification tag: 0x7deda870
 Batch ID: 0x1905090d00
 ```
 
-### Show Certificate Chain Information
+### Verify Certificate Chain Information
 This currently shows the information of the certificate chain, validates it,
 and verifies the signature of the self-signed root certificate.
 
@@ -65,7 +72,6 @@ cargo run --example verify-certs
 **Example output:**
 
 ```bash
-Running `target/debug/examples/verify-certs /dev/ttyACM0 115200`                                                                                                                                               
 Opening TS1302 dongle on /dev/ttyACM0 @ 115200 baud                                                                                                                                                                 
 Cert store sizes: [467, 610, 655, 604]                                                                                                                                                                              
 ------------------------------------------------------------------                                                                                                                                                  
