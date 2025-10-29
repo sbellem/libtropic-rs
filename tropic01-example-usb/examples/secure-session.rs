@@ -51,6 +51,11 @@ async fn main() -> Result<(), anyhow::Error> {
     let res = tropic.ping(ping_data)?;
     // Test empty data loopback
     assert_eq!(res, ping_data);
+    
+    let ping_data = [6; 4096];
+    let res = tropic.ping(&ping_data)?;
+    // Test long data loopback
+    assert_eq!(res, ping_data);
 
     Ok(())
 }
