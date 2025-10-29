@@ -43,15 +43,15 @@ async fn main() -> Result<(), anyhow::Error> {
     let shpub = SH0PUB.into();
     let shpriv = SH0PRIV.into();
     tropic.session_start(&X25519Dalek, shpub, shpriv, ehpub, ehpriv, 0)?;
-    
+
     let res = tropic.get_random_value(6)?;
     println!("random value get: {res:x?}");
-    
+
     let ping_data = b"";
     let res = tropic.ping(ping_data)?;
     // Test empty data loopback
     assert_eq!(res, ping_data);
-    
+
     let ping_data = [6; 4096];
     let res = tropic.ping(&ping_data)?;
     // Test long data loopback
