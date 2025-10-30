@@ -275,7 +275,6 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
         get_info_req(req, block, &mut self.l2_buf, &mut self.spi, &mut self.cs)
     }
 
-
     /// TODO: Review
     /// Reads the full certificate store from the chip,
     /// parses header, and fills buffers for each certificate.
