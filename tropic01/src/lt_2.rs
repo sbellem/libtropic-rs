@@ -7,6 +7,8 @@ use embedded_hal::digital::OutputPin;
 use embedded_hal::spi::ErrorType as SpiErrorType;
 use embedded_hal::spi::SpiDevice;
 use nom_derive::Nom;
+use x509_parser::parse_x509_certificate;
+use x509_parser::public_key::PublicKey; // from asn1_rs
 use zerocopy::BE;
 use zerocopy::IntoBytes;
 use zerocopy::U16;
@@ -179,6 +181,28 @@ impl CertStore {
         } else {
             None
         }
+    }
+
+    pub fn stpub(&self) -> Result<[u8; 32], PublicKeyError> {
+        // TODO: use more appropriate error
+        let device_cert_bytes = self
+            .certs
+            .first()
+            .ok_or(PublicKeyError::PublicKeyNotFound)?;
+
+        let (_, x509) = parse_x509_certificate(device_cert_bytes)
+            .map_err(|_| PublicKeyError::PublicKeyNotFound)?;
+
+        let pk = x509.public_key();
+        if let Ok(PublicKey::Unknown(b)) = pk.parsed() {
+            if b.len() == 32 {
+                let mut pubkey_bytes = [0u8; 32];
+                pubkey_bytes.copy_from_slice(&b[..32]);
+                return Ok(pubkey_bytes);
+            }
+        }
+
+        Err(PublicKeyError::PublicKeyNotFound)
     }
 }
 
