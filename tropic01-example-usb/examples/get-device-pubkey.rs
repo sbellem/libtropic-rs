@@ -11,8 +11,9 @@ use utils::x509::PARSE_ERRORS_FATAL;
 
 use x509_parser::asn1_rs::Any;
 use x509_parser::asn1_rs::Input;
-use x509_parser::certificate::X509Certificate;
-use x509_parser::prelude::FromDer; // from asn1_rs
+use x509_parser::parse_x509_certificate;
+//use x509_parser::certificate::X509Certificate;
+//use x509_parser::prelude::FromDer; // from asn1_rs
 use x509_parser::public_key::PublicKey; // from asn1_rs
 use x509_parser::prelude::DerParser;
 
@@ -56,7 +57,8 @@ async fn main() -> Result<(), anyhow::Error> {
     //println!("x509: {:?}", res);
 
     //let x509 = match X509Certificate::from_der(cert.as_bytes()) {
-    let x509 = match X509Certificate::from_der(device_cert_bytes) {
+    //let x509 = match X509Certificate::from_der(device_cert_bytes) {
+    let x509 = match parse_x509_certificate(device_cert_bytes) {
         Ok((_, x509)) => x509,
         Err(e) => {
             let msg = format!("Error while parsing cert bytes: {e}");
