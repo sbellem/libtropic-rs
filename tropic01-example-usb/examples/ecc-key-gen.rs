@@ -2,7 +2,7 @@
 
 use rand_core::OsRng;
 use std::env;
-use std::{thread, time};
+//use std::{thread, time};
 
 use tropic01::EccCurve;
 use tropic01::Error;
@@ -65,7 +65,7 @@ async fn main() -> Result<(), anyhow::Error> {
     println!("ecc key gen call ...");
     match tropic.ecc_key_generate(key_slot, EccCurve::P256) {
         Ok(res) => {
-            println!("ecc key gen done");
+            println!("ecc key gen done: {res:x?}");
         }
         Err(err) => {
             if matches!(err, Error::ChipBusy) {
