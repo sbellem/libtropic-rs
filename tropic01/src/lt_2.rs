@@ -159,6 +159,15 @@ enum InfoReq {
     _FwBank = 0xb0,
 }
 
+
+#[derive(Debug)]
+pub enum BankId {
+    RiscvFw1 = 1,      // Firmware bank 1.
+    RiscvFw2 = 2,      // Firmware bank 2
+    SpectFw1 = 17,  // SPECT bank 1.
+    SpectFw2 = 18,  // SPECT bank 2
+}
+
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum PublicKeyError {
     #[display("Could not find public key in X509 certificate")]
@@ -421,6 +430,28 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
         &mut self,
     ) -> Result<&[u8], Error<<SPI as SpiErrorType>::Error, <CS as GpioErrorType>::Error>> {
         let res = self.get_info_req(InfoReq::ChipId, 0)?;
+        Ok(res.resp_data())
+    }
+
+    pub fn get_info_riscv_fw_ver(
+        &mut self,
+    ) -> Result<&[u8], Error<<SPI as SpiErrorType>::Error, <CS as GpioErrorType>::Error>> {
+        let res = self.get_info_req(InfoReq::_RiscvFwVersion, 0)?;
+        Ok(res.resp_data())
+    }
+
+    pub fn get_info_spect_fw_ver(
+        &mut self,
+    ) -> Result<&[u8], Error<<SPI as SpiErrorType>::Error, <CS as GpioErrorType>::Error>> {
+        let res = self.get_info_req(InfoReq::_SpectFwVersion, 0)?;
+        Ok(res.resp_data())
+    }
+
+    pub fn get_info_fw_bank(
+        &mut self,
+        bank_id: u8,
+    ) -> Result<&[u8], Error<<SPI as SpiErrorType>::Error, <CS as GpioErrorType>::Error>> {
+        let res = self.get_info_req(InfoReq::_FwBank, bank_id)?;
         Ok(res.resp_data())
     }
 

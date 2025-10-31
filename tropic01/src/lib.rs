@@ -21,6 +21,7 @@ pub use crate::crypto::X25519Dalek;
 pub use crate::lt_2::ResponseStatus;
 pub use crate::lt_2::SleepReq;
 pub use crate::lt_2::StartupReq;
+pub use crate::lt_2::BankId;
 pub use crate::lt_2::X509Certificate;
 pub use crate::lt_3::EccCurve;
 pub use crate::lt_3::EccKeyReadResponse;
