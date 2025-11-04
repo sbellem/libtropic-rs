@@ -14,6 +14,7 @@ use packed_struct::derive::PackedStruct;
 use zerocopy::IntoBytes;
 use zeroize::Zeroize;
 
+pub use crate::common::LtHeaderBootV2;
 pub use crate::crypto::CryptoError;
 pub use crate::crypto::X25519;
 #[cfg(feature = "x25519-dalek")]
@@ -27,6 +28,7 @@ pub use crate::lt_3::EccCurve;
 pub use crate::lt_3::EccKeyReadResponse;
 pub use crate::lt_3::EccOrigin;
 
+pub mod common;
 mod crc16;
 mod crypto;
 #[cfg(feature = "keys")]
