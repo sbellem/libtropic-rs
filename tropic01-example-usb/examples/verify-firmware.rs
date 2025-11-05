@@ -7,6 +7,26 @@ use tropic01::common::L2_GET_INFO_FW_HEADER_SIZE_BOOT_V2;
 use tropic01::common::L2_GET_INFO_FW_HEADER_SIZE_BOOT_V2_EMPTY_BANK;
 use tropic01_example_usb::port::UsbDevice;
 
+fn print_fw_header(fw_bank_info: &[u8]) -> Result<(), anyhow::Error> {
+    if fw_bank_info.len() == L2_GET_INFO_FW_HEADER_SIZE_BOOT_V1 {
+        println!("    Bootloader v1.0.1 detected, reading {:?} header\r\n", L2_GET_INFO_FW_HEADER_SIZE_BOOT_V1);
+    } else if fw_bank_info.len() == L2_GET_INFO_FW_HEADER_SIZE_BOOT_V2 {
+        println!("    Bootloader v2.0.1 detected, reading {:?} header\r\n", L2_GET_INFO_FW_HEADER_SIZE_BOOT_V2);
+        let header_boot_info = LtHeaderBootV2::try_from(&fw_bank_info[..]).map_err(|e| {
+            println!("Failed to parse header boot: {}", e);
+            anyhow::anyhow!("Header boot parsing error: {}", e)
+        })?;
+        println!("{header_boot_info}");
+    } else if fw_bank_info.len() == L2_GET_INFO_FW_HEADER_SIZE_BOOT_V2_EMPTY_BANK {
+        println!("    No firmware present in a given bank\r\n");
+    } else {
+        println!("Unexpected header size {:?}\r\n", fw_bank_info);
+        // TODO return error
+    }
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     env_logger::init();
@@ -92,86 +112,47 @@ async fn main() -> Result<(), anyhow::Error> {
 
     println!("    Reading header from Application's firmware bank 1:\r\n");
 
-    //ret = lt_print_fw_header(h, FirmwareBankId, printf);
-    let riscv_fw_bank_info = tropic
+    let fw_bank_info = tropic
         .get_info_fw_bank(BankId::RiscvFw1 as u8)
         .map_err(|e| {
             eprintln!("Failed to get RISC-V FW bank 1 info: {:?}", e);
             anyhow::anyhow!("Failed to get RISC-V FW bank 1 info: {:?}", e)
         })?;
 
-    let header_boot_info = LtHeaderBootV2::try_from(&riscv_fw_bank_info[..]).map_err(|e| {
-        println!("Failed to parse header boot: {}", e);
-        anyhow::anyhow!("Header boot parsing error: {}", e)
-    })?;
-    
-    //if riscv_fw_bank_info.len() == L2_GET_INFO_FW_HEADER_SIZE_BOOT_V1 {
-    //    println!("    Bootloader v1.0.1 detected, reading {:?} header\r\n", L2_GET_INFO_FW_HEADER_SIZE_BOOT_V1);
-    //    return Ok(());
-    //} else if riscv_fw_bank_info.len() == L2_GET_INFO_FW_HEADER_SIZE_BOOT_V2 {
-    //    println!("    Bootloader v2.0.1 detected, reading {:?} header\r\n", L2_GET_INFO_FW_HEADER_SIZE_BOOT_V2);
-    //    let header_boot_info = LtHeaderBootV2::try_from(&riscv_fw_bank_info[..]).map_err(|e| {
-    //        println!("Failed to parse header boot: {}", e);
-    //        anyhow::anyhow!("Header boot parsing error: {}", e)
-    //    })?;
-    //} else if riscv_fw_bank_info.len() == L2_GET_INFO_FW_HEADER_SIZE_BOOT_V2_EMPTY_BANK {
-    //    println!("    No firmware present in a given bank\r\n");
-    //    return Ok(());
-    //} else {
-    //    println!("Unexpected header size {:?}\r\n", riscv_fw_bank_info);
-    //    // TODO return error
-    //    return Ok(());
-    //}
+    let _ = print_fw_header(&fw_bank_info);
 
-    println!("{header_boot_info}");
-
-    println!("");
-
-    println!("Bank 2 ID RISC V (Application) Firmware: {:?}", BankId::RiscvFw2);
     println!("    Reading header from Application's firmware bank 2:\r\n");
 
-    //ret = lt_print_fw_header(h, FirmwareBankId, printf);
-    let riscv_fw_bank_info = tropic
+    let fw_bank_info = tropic
         .get_info_fw_bank(BankId::RiscvFw2 as u8)
         .map_err(|e| {
             eprintln!("Failed to get RISC-V FW bank 2 info: {:?}", e);
             anyhow::anyhow!("Failed to get RISC-V FW bank 2 info: {:?}", e)
         })?;
 
-    println!("riscv fw bank 2 info len: {:?}", riscv_fw_bank_info.len());
-    println!("riscv fw bank 2 info: {:?}", riscv_fw_bank_info);
+    let _ = print_fw_header(&fw_bank_info);
 
-    println!("");
-
-    println!("Bank 1 ID SPECT (Crypto Engine) Firmware: {:?}", BankId::SpectFw1);
     println!("    Reading header from Crypto Engine's firmware bank 1:\r\n");
 
-    //ret = lt_print_fw_header(h, FirmwareBankId, printf);
-    let spect_fw_bank_info = tropic
+    let fw_bank_info = tropic
         .get_info_fw_bank(BankId::SpectFw1 as u8)
         .map_err(|e| {
             eprintln!("Failed to get SPECT FW bank 1 info: {:?}", e);
             anyhow::anyhow!("Failed to get SPECT FW bank 1 info: {:?}", e)
         })?;
 
-    println!("SPECT firmware bank 1 info len: {:?}", spect_fw_bank_info.len());
-    println!("SPECT firmware bank 1 info: {:?}", spect_fw_bank_info);
+    let _ = print_fw_header(&fw_bank_info);
 
-    println!("");
-
-    println!("Bank 2 ID SPECT (Crypto Engine) Firmware: {:?}", BankId::SpectFw2);
     println!("    Reading header from Crypto Engine's firmware bank 2:\r\n");
 
-    //ret = lt_print_fw_header(h, FirmwareBankId, printf);
-    let spect_fw_bank_info = tropic
+    let fw_bank_info = tropic
         .get_info_fw_bank(BankId::SpectFw2 as u8)
         .map_err(|e| {
             eprintln!("Failed to get SPECT FW bank 2 info: {:?}", e);
             anyhow::anyhow!("Failed to get SPECT FW bank 2 info: {:?}", e)
         })?;
 
-    println!("SPECT firmware bank 2 info len: {:?}", spect_fw_bank_info.len());
-    println!("SPECT firmware bank 2 info: {:?}", spect_fw_bank_info);
+    let _ = print_fw_header(&fw_bank_info);
 
     Ok(())
 }
