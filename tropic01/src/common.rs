@@ -48,8 +48,12 @@ impl core::fmt::Display for ParseHeaderV2Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ParseHeaderV2Error::TooShort { got, expected } => {
-                write!(f, "slice too short: got {} bytes, expected {}", got, expected)
-            }
+                write!(
+                    f,
+                    "slice too short: got {} bytes, expected {}",
+                    got, expected
+                )
+            },
         }
     }
 }
@@ -128,7 +132,10 @@ mod test {
 
     impl TestBuf {
         fn new() -> Self {
-            Self { buf: [0u8; 512], pos: 0 }
+            Self {
+                buf: [0u8; 512],
+                pos: 0,
+            }
         }
 
         fn as_str(&self) -> &str {

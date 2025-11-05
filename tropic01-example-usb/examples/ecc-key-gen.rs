@@ -45,9 +45,12 @@ async fn main() -> Result<(), anyhow::Error> {
     let ehpub = PublicKey::from(&ehpriv);
     let shpub = SH0PUB.into();
     let shpriv = SH0PRIV.into();
+
+    println!("shpub: {:?}", &SH0PUB);
+
     tropic.session_start(&X25519Dalek, shpub, shpriv, ehpub, ehpriv, 0)?;
     
-    let key_slot = 0.into();
+    let key_slot = 1.into();
 
     match tropic.ecc_key_read(key_slot) {
         Ok(res) => {
@@ -55,7 +58,7 @@ async fn main() -> Result<(), anyhow::Error> {
         }
         Err(err) => {
             if matches!(err, Error::InvalidKey) {
-                log::warn!("no ECC key in slot {}, skipping ECC operation", key_slot);
+                println!("no ECC key in slot {}, skipping ECC operation", key_slot);
             } else {
                 log::error!("ecc_key_read failed: {:?}", err);
             }

@@ -41,6 +41,9 @@ zeroize = { version = "1", default-features = false, features = ["derive"] }
 x509-parser = "0.18.0"
 reqwest = "0.12.24"
 openssl = "0.10.74"
+array-bytes = "9.3.0"
+defmt = "1.0.1"
+defmt-rtt = "1.1.0"
 
 [features]
 default = ["keys", "x25519-dalek"]

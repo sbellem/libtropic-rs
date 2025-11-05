@@ -1,7 +1,7 @@
 use core::iter::repeat_n;
 
-use aes_gcm::aead::arrayvec::ArrayVec;
 use aes_gcm::aead::Buffer;
+use aes_gcm::aead::arrayvec::ArrayVec;
 use embedded_hal::digital::ErrorType as GpioErrorType;
 use embedded_hal::digital::OutputPin;
 use embedded_hal::spi::ErrorType as SpiErrorType;
@@ -48,7 +48,6 @@ const CERT_STORE_VERSION: u8 = 1;
 const NUM_CERTIFICATES: usize = 4;
 const CERTS_BUF_LEN: usize = 700;
 //const CHUNK_SIZE: usize = 128;
-
 
 #[derive(Debug)]
 #[repr(u8)]
@@ -159,13 +158,12 @@ enum InfoReq {
     _FwBank = 0xb0,
 }
 
-
 #[derive(Debug)]
 pub enum BankId {
-    RiscvFw1 = 1,      // Firmware bank 1.
-    RiscvFw2 = 2,      // Firmware bank 2
-    SpectFw1 = 17,  // SPECT bank 1.
-    SpectFw2 = 18,  // SPECT bank 2
+    RiscvFw1 = 1,  // Firmware bank 1.
+    RiscvFw2 = 2,  // Firmware bank 2
+    SpectFw1 = 17, // SPECT bank 1.
+    SpectFw2 = 18, // SPECT bank 2
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -173,7 +171,6 @@ pub enum PublicKeyError {
     #[display("Could not find public key in X509 certificate")]
     PublicKeyNotFound,
 }
-
 
 /// TODO: doc
 #[derive(Debug)]
@@ -308,14 +305,18 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
             return Err(Error::InvalidL2Response);
         }
         let mut i = 0;
-        let version = first_chunk[i]; i += 1;
-        let cert_count = first_chunk[i]; i += 1;
+        let version = first_chunk[i];
+        i += 1;
+        let cert_count = first_chunk[i];
+        i += 1;
         if version != CERT_STORE_VERSION || cert_count as usize != NUM_CERTIFICATES {
             return Err(Error::InvalidL2Response);
         }
         for n in 0..NUM_CERTIFICATES {
-            let hi = first_chunk[i] as usize; i += 1;
-            let lo = first_chunk[i] as usize; i += 1;
+            let hi = first_chunk[i] as usize;
+            i += 1;
+            let lo = first_chunk[i] as usize;
+            i += 1;
             store.cert_len[n] = (hi << 8) | lo;
         }
 
@@ -332,14 +333,16 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
             if to_copy > rem {
                 return Err(Error::L3ResponseBufferOverflow);
             }
-            let _ = store.certs[current_cert]
-                .extend_from_slice(&first_chunk[head..head+to_copy]);
+            let _ = store.certs[current_cert].extend_from_slice(&first_chunk[head..head + to_copy]);
             cert_head_offsets[current_cert] += to_copy;
             head += to_copy;
             available -= to_copy;
 
             // Handle overflow into next certs in the same chunk
-            while cert_head_offsets[current_cert] == store.cert_len[current_cert] && available > 0 && current_cert < NUM_CERTIFICATES-1 {
+            while cert_head_offsets[current_cert] == store.cert_len[current_cert]
+                && available > 0
+                && current_cert < NUM_CERTIFICATES - 1
+            {
                 current_cert += 1;
                 let till_now = cert_head_offsets[current_cert];
                 let till_end = store.cert_len[current_cert].saturating_sub(till_now);
@@ -349,8 +352,8 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
                 if to_copy > rem {
                     return Err(Error::L3ResponseBufferOverflow);
                 }
-                let _ = store.certs[current_cert]
-                    .extend_from_slice(&first_chunk[head..head+to_copy]);
+                let _ =
+                    store.certs[current_cert].extend_from_slice(&first_chunk[head..head + to_copy]);
                 cert_head_offsets[current_cert] += to_copy;
                 head += to_copy;
                 available -= to_copy;
@@ -358,7 +361,9 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
         }
 
         // Continue reading chunks until all certs are filled
-        while current_cert < NUM_CERTIFICATES && cert_head_offsets[current_cert] < store.cert_len[current_cert] {
+        while current_cert < NUM_CERTIFICATES
+            && cert_head_offsets[current_cert] < store.cert_len[current_cert]
+        {
             let res = self.get_info_req(InfoReq::X509Certificate, block_index)?;
             let chunk = res.resp_data();
             block_index += 1;
@@ -373,13 +378,15 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
             if to_copy > rem {
                 return Err(Error::L3ResponseBufferOverflow);
             }
-            let _ = store.certs[current_cert]
-                .extend_from_slice(&chunk[head..head+to_copy]);
+            let _ = store.certs[current_cert].extend_from_slice(&chunk[head..head + to_copy]);
             cert_head_offsets[current_cert] += to_copy;
             head += to_copy;
             available -= to_copy;
 
-            while cert_head_offsets[current_cert] == store.cert_len[current_cert] && available > 0 && current_cert < NUM_CERTIFICATES-1 {
+            while cert_head_offsets[current_cert] == store.cert_len[current_cert]
+                && available > 0
+                && current_cert < NUM_CERTIFICATES - 1
+            {
                 current_cert += 1;
                 let till_now = cert_head_offsets[current_cert];
                 let till_end = store.cert_len[current_cert].saturating_sub(till_now);
@@ -389,8 +396,7 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
                 if to_copy > rem {
                     return Err(Error::L3ResponseBufferOverflow);
                 }
-                let _ = store.certs[current_cert]
-                    .extend_from_slice(&chunk[head..head+to_copy]);
+                let _ = store.certs[current_cert].extend_from_slice(&chunk[head..head + to_copy]);
                 cert_head_offsets[current_cert] += to_copy;
                 head += to_copy;
                 available -= to_copy;
