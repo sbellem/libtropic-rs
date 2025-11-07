@@ -1,4 +1,4 @@
-use tropic01_example_usb::ChipId;
+use tropic01_example_usb::chipid::ChipId;
 
 #[test]
 fn test_chip_id_parsing_and_printing() {

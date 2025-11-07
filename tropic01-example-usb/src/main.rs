@@ -27,8 +27,9 @@ use tropic01::keys::SH0PRIV;
 use tropic01::keys::SH0PUB;
 use tropic01::{Error as TropicError, Tropic01};
 
-use tropic01_example_usb::ChipId;
 use tropic01_example_usb::cert::Cert;
+use tropic01_example_usb::chipid::ChipId;
+use tropic01_example_usb::port::UsbDevice;
 
 use x25519_dalek::PublicKey;
 use x25519_dalek::StaticSecret;
@@ -176,7 +177,7 @@ async fn main() -> Result<(), anyhow::Error> {
         port_name, baud_rate
     );
 
-    let transport = SerialTransport::new(&port_name, baud_rate)?;
+    let transport = UsbDevice::new(&port_name, baud_rate)?;
     let mut tropic01 = Tropic01::new(transport);
 
     let res = tropic01.get_info_chip_id()?;
