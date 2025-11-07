@@ -61,6 +61,7 @@ enum L3CmdId {
     RandomValueGet = 0x50,
     EccKeyGenerate = 0x60,
     EccKeyRead = 0x62,
+    EccKeyErase = 0x63,
     EcDSASign = 0x70,
     EdDSASign = 0x71,
 }
@@ -271,6 +272,16 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
         let cmd_raw = DecryptedL3CommandPacket::new(L3CmdId::EccKeyRead as u8, &data[..]);
         let res = self.lt_l3_transfer(cmd_raw)?;
         Ok(EccKeyReadResponse::from_bytes(res.data)?)
+    }
+
+    pub fn ecc_key_erase(
+        &mut self,
+        slot: zerocopy::big_endian::U16,
+    ) -> Result<(), Error<<SPI as SpiErrorType>::Error, <CS as GpioErrorType>::Error>> {
+        let data = [slot.as_bytes()];
+        let cmd_raw = DecryptedL3CommandPacket::new(L3CmdId::EccKeyErase as u8, &data[..]);
+        self.lt_l3_transfer(cmd_raw)?;
+        Ok(())
     }
 
     pub fn ecdsa_sign(
