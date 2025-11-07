@@ -50,8 +50,10 @@ async fn main() -> Result<(), anyhow::Error> {
 
     tropic.session_start(&X25519Dalek, shpub, shpriv, ehpub, ehpriv, 0)?;
     
-    let key_slot = 1.into();
+    let key_slot = 0.into();
 
+    println!("{:-<79}", "");
+    println!("ecc key read call ...");
     match tropic.ecc_key_read(key_slot) {
         Ok(res) => {
             println!("key read response: {res:x?}");
@@ -65,6 +67,22 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
 
+    println!("{:-<79}", "");
+    println!("ecc key erase call ...");
+    match tropic.ecc_key_erase(key_slot) {
+        Ok(res) => {
+            println!("ecc key erase done: {res:x?}");
+        }
+        Err(err) => {
+            if matches!(err, Error::ChipBusy) {
+                log::error!("chip is busy, not sure why {:?}", err);
+            } else {
+                log::error!("ecc_key_erase error: {:?}", err);
+            }
+        }
+    }
+
+    println!("{:-<79}", "");
     println!("ecc key gen call ...");
     match tropic.ecc_key_generate(key_slot, EccCurve::P256) {
         Ok(res) => {
@@ -79,12 +97,20 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
 
-    //let ten_millis = time::Duration::from_millis(1000);
-    //let now = time::Instant::now();
-    //thread::sleep(ten_millis);
-
-    //let res = tropic.ecc_key_read(key_slot)?;
-    //println!("key read response: {res:x?}");
+    println!("{:-<79}", "");
+    println!("ecc key read call ...");
+    match tropic.ecc_key_read(key_slot) {
+        Ok(res) => {
+            println!("key read response: {res:x?}");
+        }
+        Err(err) => {
+            if matches!(err, Error::InvalidKey) {
+                println!("no ECC key in slot {}, skipping ECC operation", key_slot);
+            } else {
+                log::error!("ecc_key_read failed: {:?}", err);
+            }
+        }
+    }
 
     //let public_key =
      //   VerifyingKey::from_bytes(res.pub_key().try_into()?).expect("public key to be valid");
