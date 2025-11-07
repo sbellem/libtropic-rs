@@ -8,7 +8,7 @@
 //! even when the crate is `no_std`.
 
 use core::convert::TryFrom;
-use core::fmt::{self, Write};
+use core::fmt;
 
 // @brief Maximal size of returned fw header
 /// Expected size of the v1 header in bytes.

@@ -15,7 +15,7 @@ tropic01 = { path = "../tropic01", default-features = false, features = [
   "keys",
   "x25519-dalek",
 ] }
-utils = { path = "../utils" }
+utils = { path = "../utils", default-features = false, features = [ "validate", "verify-aws" ] }
 
 anyhow = { version = "1.0.98", default-features = false }
 ed25519-dalek = { version = "2.2.0", default-features = false }
