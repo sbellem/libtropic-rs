@@ -348,6 +348,11 @@ mod test {
             "ECC_KEY_READ command ID mismatch"
         );
         assert_eq!(
+            L3CmdId::EccKeyErase as u8,
+            0x63,
+            "ECC_KEY_READ command ID mismatch"
+        );
+        assert_eq!(
             L3CmdId::EcDSASign as u8,
             0x70,
             "ECDSA_SIGN command ID mismatch"
