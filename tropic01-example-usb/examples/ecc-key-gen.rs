@@ -8,8 +8,8 @@ use tropic01::EccCurve;
 use tropic01::Error;
 use tropic01::Tropic01;
 use tropic01::X25519Dalek;
-use tropic01::keys::SH0PRIV;
-use tropic01::keys::SH0PUB;
+use tropic01::keys::SH0PRIV_PROD;
+use tropic01::keys::SH0PUB_PROD;
 use tropic01_example_usb::port::UsbDevice;
 
 use x25519_dalek::PublicKey;
@@ -21,13 +21,20 @@ async fn main() -> Result<(), anyhow::Error> {
     env_logger::init();
 
     let args: Vec<String> = env::args().collect();
-    let port_name = args
+
+    let key_slot: u16 = args
         .get(1)
+        .and_then(|s| s.parse().ok())
+        .filter(|&slot| slot <= 31)  // Valid ECC slots are 0-31
+        .unwrap_or(0);
+
+    let port_name = args
+        .get(2)
         .cloned()
         .unwrap_or_else(|| "/dev/ttyACM0".to_string());
 
     let baud_rate = args
-        .get(2)
+        .get(3)
         .and_then(|s| s.parse().ok())
         .filter(|&r| [4800, 9600, 19200, 38400, 115200].contains(&r))
         .unwrap_or(115200);
@@ -36,6 +43,7 @@ async fn main() -> Result<(), anyhow::Error> {
         "Opening TS1302 dongle on {} @ {} baud",
         port_name, baud_rate
     );
+    println!("Using ECC key slot: {}", key_slot);
 
     let usb_device = UsbDevice::new(&port_name, baud_rate)?;
     let mut tropic = Tropic01::new(usb_device);
@@ -43,14 +51,14 @@ async fn main() -> Result<(), anyhow::Error> {
     let csprng = OsRng;
     let ehpriv = StaticSecret::random_from_rng(csprng);
     let ehpub = PublicKey::from(&ehpriv);
-    let shpub = SH0PUB.into();
-    let shpriv = SH0PRIV.into();
+    let shpub = SH0PUB_PROD.into();
+    let shpriv = SH0PRIV_PROD.into();
 
-    println!("shpub: {:?}", &SH0PUB);
+    println!("shpub: {:?}", &SH0PUB_PROD);
 
     tropic.session_start(&X25519Dalek, shpub, shpriv, ehpub, ehpriv, 0)?;
     
-    let key_slot = 0.into();
+    let key_slot = key_slot.into();
 
     println!("{:-<79}", "");
     println!("ecc key read call ...");

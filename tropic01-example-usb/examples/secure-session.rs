@@ -5,8 +5,8 @@ use std::env;
 
 use tropic01::Tropic01;
 use tropic01::X25519Dalek;
-use tropic01::keys::SH0PRIV;
-use tropic01::keys::SH0PUB;
+use tropic01::keys::SH0PRIV_PROD;
+use tropic01::keys::SH0PUB_PROD;
 use tropic01_example_usb::port::UsbDevice;
 
 use x25519_dalek::PublicKey;
@@ -40,8 +40,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let csprng = OsRng;
     let ehpriv = StaticSecret::random_from_rng(csprng);
     let ehpub = PublicKey::from(&ehpriv);
-    let shpub = SH0PUB.into();
-    let shpriv = SH0PRIV.into();
+    let shpub = SH0PUB_PROD.into();
+    let shpriv = SH0PRIV_PROD.into();
     tropic.session_start(&X25519Dalek, shpub, shpriv, ehpub, ehpriv, 0)?;
 
     let res = tropic.get_random_value(6)?;
