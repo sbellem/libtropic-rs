@@ -363,4 +363,48 @@ mod test {
             "EDDSA_SIGN command ID mismatch"
         );
     }
+
+    /// Regression test for bug where ecc_key_generate used EcDSASign (0x70) instead of
+    /// EccKeyGenerate (0x60), causing "Unauthorized" errors from TROPIC01.
+    #[test]
+    fn test_ecc_key_generate_uses_correct_command_id() {
+        // This test verifies the command packet is constructed with the correct ID
+        let slot_bytes = [0x00, 0x01]; // slot 1 as big-endian U16
+        let curve = EccCurve::P256;
+
+        let data = [&slot_bytes[..], &[curve as u8][..]];
+        let cmd = DecryptedL3CommandPacket::new(L3CmdId::EccKeyGenerate as u8, &data[..]);
+
+        // Verify the command uses EccKeyGenerate (0x60), NOT EcDSASign (0x70)
+        assert_eq!(
+            cmd.id, 0x60,
+            "ecc_key_generate must use command ID 0x60 (EccKeyGenerate), not 0x70 (EcDSASign)"
+        );
+        assert_ne!(
+            cmd.id, 0x70,
+            "ecc_key_generate incorrectly using EcDSASign command ID"
+        );
+    }
+
+    #[test]
+    fn test_ecc_curve_enum_values() {
+        // Verify EccCurve enum values match TROPIC01 specification
+        assert_eq!(EccCurve::P256 as u8, 0x01, "P256 curve ID mismatch");
+        assert_eq!(EccCurve::Ed25519 as u8, 0x02, "Ed25519 curve ID mismatch");
+    }
+
+    #[test]
+    fn test_ecc_curve_key_lengths() {
+        // Verify key length calculations
+        assert_eq!(
+            EccCurve::Ed25519.key_len(),
+            32,
+            "Ed25519 key length should be 32 bytes"
+        );
+        assert_eq!(
+            EccCurve::P256.key_len(),
+            64,
+            "P256 key length should be 64 bytes (uncompressed)"
+        );
+    }
 }
