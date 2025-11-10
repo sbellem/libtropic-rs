@@ -236,6 +236,11 @@ impl<'a> X509Certificate<'a> {
             .try_into()
             .map_err(|_| PublicKeyError::PublicKeyNotFound)
     }
+
+    /// Public accessor for the DER bytes
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.data[..]
+    }
 }
 
 /// Represents the types of startup requests the chip supports.
