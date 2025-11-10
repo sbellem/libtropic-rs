@@ -1,11 +1,14 @@
 use core::iter::repeat_n;
 
+use aes_gcm::aead::Buffer;
 use aes_gcm::aead::arrayvec::ArrayVec;
 use embedded_hal::digital::ErrorType as GpioErrorType;
 use embedded_hal::digital::OutputPin;
 use embedded_hal::spi::ErrorType as SpiErrorType;
 use embedded_hal::spi::SpiDevice;
 use nom_derive::Nom;
+use x509_parser::parse_x509_certificate;
+use x509_parser::public_key::PublicKey;
 use zerocopy::BE;
 use zerocopy::IntoBytes;
 use zerocopy::U16;
@@ -39,6 +42,10 @@ const L2_GET_INFO_REQ_CERT_SIZE: usize = 512;
 /// Protocol Name
 /// See section 7.4.1 of the datasheet, section `Protocol Name`.
 const PROTOCOL_NAME: &[u8; 32] = b"Noise_KK1_25519_AESGCM_SHA256\x00\x00\x00";
+
+const CERT_STORE_VERSION: u8 = 1;
+const NUM_CERTIFICATES: usize = 4;
+const CERTS_BUF_LEN: usize = 700;
 
 #[derive(Debug)]
 #[repr(u8)]
@@ -163,6 +170,46 @@ pub enum PublicKeyError {
     PublicKeyNotFound,
 }
 
+/// TODO: doc
+#[derive(Debug)]
+pub struct CertStore {
+    pub certs: [ArrayVec<u8, CERTS_BUF_LEN>; NUM_CERTIFICATES],
+    pub cert_len: [usize; NUM_CERTIFICATES],
+}
+
+/// TODO: doc
+impl CertStore {
+    pub fn cert_der(&self, i: usize) -> Option<&[u8]> {
+        if i < NUM_CERTIFICATES && self.cert_len[i] > 0 {
+            Some(self.certs[i].as_slice())
+        } else {
+            None
+        }
+    }
+
+    pub fn stpub(&self) -> Result<[u8; 32], PublicKeyError> {
+        // TODO: use more appropriate error
+        let device_cert_bytes = self
+            .certs
+            .first()
+            .ok_or(PublicKeyError::PublicKeyNotFound)?;
+
+        let (_, x509) = parse_x509_certificate(device_cert_bytes)
+            .map_err(|_| PublicKeyError::PublicKeyNotFound)?;
+
+        let pk = x509.public_key();
+        if let Ok(PublicKey::Unknown(b)) = pk.parsed() {
+            if b.len() == 32 {
+                let mut pubkey_bytes = [0u8; 32];
+                pubkey_bytes.copy_from_slice(&b[..32]);
+                return Ok(pubkey_bytes);
+            }
+        }
+
+        Err(PublicKeyError::PublicKeyNotFound)
+    }
+}
+
 /// The x509 certificate of the chip containing the public key.
 #[derive(Debug)]
 pub struct X509Certificate<'a> {
@@ -225,6 +272,130 @@ impl<SPI: SpiDevice, CS: OutputPin> Tropic01<SPI, CS> {
         Error<<SPI as SpiErrorType>::Error, <CS as GpioErrorType>::Error>,
     > {
         get_info_req(req, block, &mut self.l2_buf, &mut self.spi, &mut self.cs)
+    }
+
+    /// TODO: Review
+    /// Reads the full certificate store from the chip,
+    /// parses header, and fills buffers for each certificate.
+    pub fn get_info_cert_store(
+        &mut self,
+    ) -> Result<CertStore, Error<<SPI as SpiErrorType>::Error, <CS as GpioErrorType>::Error>> {
+        let mut store = CertStore {
+            certs: core::array::from_fn(|_| ArrayVec::<u8, CERTS_BUF_LEN>::new()),
+            cert_len: [0; NUM_CERTIFICATES],
+        };
+        let mut current_cert = 0;
+        let mut cert_head_offsets = [0usize; NUM_CERTIFICATES];
+        let mut block_index = 0;
+
+        // First chunk: parse header
+        let res = self.get_info_req(InfoReq::X509Certificate, block_index)?;
+        let first_chunk = res.resp_data();
+        block_index += 1;
+
+        // Parse header
+        if first_chunk.len() < 2 + NUM_CERTIFICATES * 2 {
+            return Err(Error::InvalidL2Response);
+        }
+        let mut i = 0;
+        let version = first_chunk[i];
+        i += 1;
+        let cert_count = first_chunk[i];
+        i += 1;
+        if version != CERT_STORE_VERSION || cert_count as usize != NUM_CERTIFICATES {
+            return Err(Error::InvalidL2Response);
+        }
+        for n in 0..NUM_CERTIFICATES {
+            let hi = first_chunk[i] as usize;
+            i += 1;
+            let lo = first_chunk[i] as usize;
+            i += 1;
+            store.cert_len[n] = (hi << 8) | lo;
+        }
+
+        // Copy from remainder of first chunk
+        let mut head = i;
+        let mut available = first_chunk.len() - i;
+        {
+            let till_now = cert_head_offsets[current_cert];
+            let till_end = store.cert_len[current_cert].saturating_sub(till_now);
+            let to_copy = till_end.min(available);
+
+            // ensure we won't overflow the fixed-capacity ArrayVec
+            let rem = CERTS_BUF_LEN - store.certs[current_cert].len();
+            if to_copy > rem {
+                return Err(Error::L3ResponseBufferOverflow);
+            }
+            let _ = store.certs[current_cert].extend_from_slice(&first_chunk[head..head + to_copy]);
+            cert_head_offsets[current_cert] += to_copy;
+            head += to_copy;
+            available -= to_copy;
+
+            // Handle overflow into next certs in the same chunk
+            while cert_head_offsets[current_cert] == store.cert_len[current_cert]
+                && available > 0
+                && current_cert < NUM_CERTIFICATES - 1
+            {
+                current_cert += 1;
+                let till_now = cert_head_offsets[current_cert];
+                let till_end = store.cert_len[current_cert].saturating_sub(till_now);
+                let to_copy = till_end.min(available);
+
+                let rem = CERTS_BUF_LEN - store.certs[current_cert].len();
+                if to_copy > rem {
+                    return Err(Error::L3ResponseBufferOverflow);
+                }
+                let _ =
+                    store.certs[current_cert].extend_from_slice(&first_chunk[head..head + to_copy]);
+                cert_head_offsets[current_cert] += to_copy;
+                head += to_copy;
+                available -= to_copy;
+            }
+        }
+
+        // Continue reading chunks until all certs are filled
+        while current_cert < NUM_CERTIFICATES
+            && cert_head_offsets[current_cert] < store.cert_len[current_cert]
+        {
+            let res = self.get_info_req(InfoReq::X509Certificate, block_index)?;
+            let chunk = res.resp_data();
+            block_index += 1;
+
+            let mut head = 0;
+            let mut available = chunk.len();
+            let till_now = cert_head_offsets[current_cert];
+            let till_end = store.cert_len[current_cert].saturating_sub(till_now);
+            let to_copy = till_end.min(available);
+
+            let rem = CERTS_BUF_LEN - store.certs[current_cert].len();
+            if to_copy > rem {
+                return Err(Error::L3ResponseBufferOverflow);
+            }
+            let _ = store.certs[current_cert].extend_from_slice(&chunk[head..head + to_copy]);
+            cert_head_offsets[current_cert] += to_copy;
+            head += to_copy;
+            available -= to_copy;
+
+            while cert_head_offsets[current_cert] == store.cert_len[current_cert]
+                && available > 0
+                && current_cert < NUM_CERTIFICATES - 1
+            {
+                current_cert += 1;
+                let till_now = cert_head_offsets[current_cert];
+                let till_end = store.cert_len[current_cert].saturating_sub(till_now);
+                let to_copy = till_end.min(available);
+
+                let rem = CERTS_BUF_LEN - store.certs[current_cert].len();
+                if to_copy > rem {
+                    return Err(Error::L3ResponseBufferOverflow);
+                }
+                let _ = store.certs[current_cert].extend_from_slice(&chunk[head..head + to_copy]);
+                cert_head_offsets[current_cert] += to_copy;
+                head += to_copy;
+                available -= to_copy;
+            }
+        }
+        Ok(store)
     }
 
     pub fn get_info_cert(
