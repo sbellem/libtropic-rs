@@ -1,4 +1,5 @@
-#![no_std]
+//#![no_std]
+#![cfg_attr(not(test), no_std)]
 #![forbid(clippy::std_instead_of_alloc, clippy::std_instead_of_core)]
 
 use aes_gcm::aead::arrayvec::ArrayVec;

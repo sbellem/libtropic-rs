@@ -38,6 +38,7 @@ zerocopy = { version = "0.8", default-features = false, features = ["derive"] }
 zeroize = { version = "1", default-features = false, features = ["derive"] }
 
 x509-parser = "0.18.0"
+array-bytes = "9.3.0"
 
 [features]
 default = ["keys", "x25519-dalek"]
