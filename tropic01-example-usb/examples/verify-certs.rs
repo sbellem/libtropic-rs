@@ -1,6 +1,6 @@
 /// Example to verify the provisioned certificate chain
-
 use std::env;
+
 use arrayvec::ArrayVec;
 use tropic01::Tropic01;
 use tropic01_example_usb::cert::Cert;
