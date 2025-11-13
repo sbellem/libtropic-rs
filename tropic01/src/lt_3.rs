@@ -482,8 +482,9 @@ mod test {
         );
     }
 
-    /// Regression test for bug where ecc_key_generate used EcDSASign (0x70) instead of
-    /// EccKeyGenerate (0x60), causing "Unauthorized" errors from TROPIC01.
+    /// Regression test for bug where ecc_key_generate used EcDSASign (0x70)
+    /// instead of EccKeyGenerate (0x60), causing "Unauthorized" errors from
+    /// TROPIC01.
     #[test]
     fn test_ecc_key_generate_uses_correct_command_id() {
         // This test verifies the command packet is constructed with the correct ID
