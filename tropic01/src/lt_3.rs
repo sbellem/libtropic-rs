@@ -525,4 +525,22 @@ mod test {
             "P256 key length should be 64 bytes (uncompressed)"
         );
     }
+
+    #[test]
+    fn test_mcounter_index_values() {
+        // Verify MCounterIndex enum values match TROPIC01 specification
+        assert_eq!(MCounterIndex::Index0 as u16, 0, "Index0 mismatch");
+        assert_eq!(MCounterIndex::Index1 as u16, 1, "Index1 mismatch");
+        assert_eq!(MCounterIndex::Index7 as u16, 7, "Index7 mismatch");
+        assert_eq!(MCounterIndex::Index15 as u16, 15, "Index15 mismatch");
+    }
+
+    #[test]
+    fn test_mcounter_max_value() {
+        // Verify MCOUNTER_VALUE_MAX matches libtropic C SDK
+        assert_eq!(
+            MCOUNTER_VALUE_MAX, 0xFFFF_FFFE,
+            "MCOUNTER_VALUE_MAX should be 0xFFFFFFFE"
+        );
+    }
 }
