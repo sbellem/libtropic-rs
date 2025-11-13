@@ -118,7 +118,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let pong = tropic01.ping(&ping_data)?;
     println!("pong: {:?}", pong);
     assert_eq!(pong, ping_data);
-    
+
     println!("{:-<79}", "");
     let key_slot = 0.into();
     println!("ecc key read call ...");
@@ -134,7 +134,7 @@ async fn main() -> Result<(), anyhow::Error> {
             }
         },
     }
-    
+
     println!("{:-<79}", "");
     println!("ecc key erase call ...");
     match tropic01.ecc_key_erase(key_slot) {
@@ -149,7 +149,7 @@ async fn main() -> Result<(), anyhow::Error> {
             }
         },
     }
-    
+
     println!("{:-<79}", "");
     let key_slot = 0.into();
     println!("ecc key read call ...");

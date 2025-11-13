@@ -2,11 +2,11 @@ use std::env;
 
 /// Example to verify start a secure session
 use rand_core::OsRng;
+use tropic01::MCounterIndex;
 use tropic01::Tropic01;
 use tropic01::X25519Dalek;
 use tropic01::keys::SH0PRIV_PROD;
 use tropic01::keys::SH0PUB_PROD;
-use tropic01::MCounterIndex;
 use tropic01_example_usb::port::UsbDevice;
 use x25519_dalek::PublicKey;
 use x25519_dalek::StaticSecret;
