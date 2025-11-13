@@ -90,9 +90,42 @@ Run the entire secure session inside a **zero-knowledge virtual machine** (zkVM)
 
 ### Prerequisites
 
+#### Option A: Using Nix (Recommended)
+
+1. **Install Nix** (if not already installed):
+   ```bash
+   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+   ```
+
+2. **Enter development environment**:
+   ```bash
+   cd libtropic-rs/tropic01-zkvm-attestation
+   nix develop
+   ```
+   
+   This automatically provides:
+   - Rust 1.85.1 with RISC-V target
+   - All build dependencies (cmake, gcc, clang)
+   - USB/serial libraries for TROPIC01
+   - Development tools
+
+3. **Install SP1 toolchain** (inside Nix shell):
+   ```bash
+   curl -L https://sp1.succinct.xyz | bash
+   source ~/.bashrc  # or restart shell
+   sp1up
+   cargo prove --version
+   ```
+
+   **Note**: SP1 is currently installed via their installer (not Nix package) as it includes
+   custom toolchain management. The Nix environment provides all dependencies SP1 needs.
+
+#### Option B: Manual Installation
+
 1. **Install Rust** (1.85.1+):
    ```bash
    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   rustup target add riscv32im-unknown-none-elf
    ```
 
 2. **Install SP1 toolchain**:
@@ -102,7 +135,19 @@ Run the entire secure session inside a **zero-knowledge virtual machine** (zkVM)
    cargo prove --version
    ```
 
-3. **Hardware Requirements**:
+3. **Install system dependencies**:
+   ```bash
+   # Ubuntu/Debian
+   sudo apt-get install pkg-config libusb-1.0-0-dev libudev-dev cmake gcc clang
+   
+   # Fedora
+   sudo dnf install pkg-config libusb-devel systemd-devel cmake gcc clang
+   
+   # macOS
+   brew install pkg-config libusb cmake
+   ```
+
+#### Hardware Requirements
    - TROPIC01 chip with TS1302 USB dongle
    - ~4-8 GB RAM for proof generation
    - ~10-20 GB disk space for SP1 toolchain

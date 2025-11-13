@@ -35,8 +35,22 @@ Execute session in zkVM → Generate proof π → Remote verification
 
 ## Quick Start
 
+### With Nix (Recommended)
 ```bash
-# Install SP1
+# Enter Nix environment (auto-installs dependencies)
+cd tropic01-zkvm-attestation && nix develop
+
+# Install SP1 (inside Nix shell)
+curl -L https://sp1.succinct.xyz | bash && source ~/.bashrc && sp1up
+
+# Build and run
+./build.sh
+cargo run --release -- /dev/ttyACM0 115200
+```
+
+### Without Nix
+```bash
+# Install SP1 manually
 curl -L https://sp1.succinct.xyz | bash && sp1up
 
 # Build
@@ -45,6 +59,8 @@ cd tropic01-zkvm-attestation && ./build.sh
 # Run
 cargo run --release -- /dev/ttyACM0 115200
 ```
+
+See `NIX_GUIDE.md` for detailed Nix setup.
 
 ## Files
 
