@@ -1,11 +1,8 @@
 //! Pure-Rust representation and no-std-friendly tests for lt_header_boot_v2_t.
 //!
-//! This file intentionally does NOT contain `#![no_std]` so it can be included from a
-//! crate that already applies that at the crate root (put `#![no_std]` in `lib.rs`).
-//!
-//! The tests below avoid `format!` / `std` and instead write `Display` output into a
-//! small stack-backed buffer that implements `core::fmt::Write`, so the tests work
-//! even when the crate is `no_std`.
+//! The tests below avoid `format!` / `std` and instead write `Display` output
+//! into a small stack-backed buffer that implements `core::fmt::Write`, so the
+//! tests work even when the crate is `no_std`.
 
 use core::convert::TryFrom;
 use core::fmt;
@@ -98,7 +95,8 @@ impl TryFrom<&[u8]> for LtHeaderBootV2 {
 }
 
 impl fmt::Display for LtHeaderBootV2 {
-    /// Format matching the original C printing (uppercase hex, zero-padded widths).
+    /// Format matching the original C printing (uppercase hex, zero-padded
+    /// widths).
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "      Type:               {:04X}", self.type_)?;
         writeln!(f, "      Padding:            {:02X}", self.padding)?;
@@ -119,12 +117,14 @@ impl fmt::Display for LtHeaderBootV2 {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use core::fmt::Write;
     use core::str;
 
+    use super::*;
+
     // Small stack-backed buffer for tests that implements core::fmt::Write.
-    // Avoids using `format!` / std allocation so tests are compatible with no_std crates.
+    // Avoids using `format!` / std allocation so tests are compatible with no_std
+    // crates.
     struct TestBuf {
         buf: [u8; 512], // increased from 256 to 512 to avoid overflow for the v2 header output
         pos: usize,
@@ -139,7 +139,8 @@ mod test {
         }
 
         fn as_str(&self) -> &str {
-            // For tests we expect ASCII hex output; panic on invalid UTF-8 which indicates a bug.
+            // For tests we expect ASCII hex output; panic on invalid UTF-8 which indicates
+            // a bug.
             core::str::from_utf8(&self.buf[..self.pos]).expect("buffer contains valid utf8")
         }
     }
