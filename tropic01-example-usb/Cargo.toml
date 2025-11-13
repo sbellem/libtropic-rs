@@ -18,6 +18,7 @@ tropic01 = { path = "../tropic01", default-features = false, features = [
 utils = { path = "../utils", default-features = false, features = [ "validate", "verify-aws" ] }
 
 anyhow = { version = "1.0.98", default-features = false }
+dummy-pin = { version = "1.0.0", default-features = false }
 ed25519-dalek = { version = "2.2.0", default-features = false }
 env_logger = { version = "0.11.8", default-features = false }
 linux-embedded-hal = { version = "0.4.0", default-features = false }
