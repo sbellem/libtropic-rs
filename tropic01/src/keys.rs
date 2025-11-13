@@ -63,6 +63,7 @@ pub const SH0PUB_PROD: [u8; 32] = [
 #[cfg(test)]
 mod test {
     use array_bytes::Hexify;
+
     //use defmt_rtt as _;
     //use crate::keys::*;
     use super::*;
