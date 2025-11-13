@@ -216,7 +216,9 @@ impl From<TropicError<UsbDeviceError, std::convert::Infallible>> for UsbDeviceEr
             TropicError::InvalidKey => Self::Tropic(TropicError::InvalidKey),
             TropicError::InvalidL2Response => Self::Tropic(TropicError::InvalidL2Response),
             TropicError::InvalidL3Cmd => Self::Tropic(TropicError::InvalidL3Cmd),
+            TropicError::InvalidParameter => Self::Tropic(TropicError::InvalidParameter),
             TropicError::InvalidPublicKey => Self::Tropic(TropicError::InvalidPublicKey),
+            TropicError::InvalidResponse => Self::Tropic(TropicError::InvalidResponse),
             TropicError::L2ResponseError(e) => Self::Tropic(TropicError::L2ResponseError(e)),
             TropicError::L3CmdFailed => Self::Tropic(TropicError::L3CmdFailed),
             TropicError::L3ResponseBufferOverflow => {
