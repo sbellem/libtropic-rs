@@ -1,0 +1,18 @@
+[package]
+name = "tropic01-session-verifier"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# SP1 zkVM runtime for guest programs
+sp1-zkvm = "4.0.0"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+bincode = "1.3"
+
+# Note: We'll need minimal versions of crypto libraries that work in zkVM
+# For now, we'll use simplified versions or stub implementations
+sha2 = { version = "0.10", default-features = false }
+
+[workspace]
